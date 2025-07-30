@@ -44,7 +44,7 @@ public class SuperLyricPush {
     /**
      * 歌曲暂停
      * <p>
-     * 请务必传递包名信息，当然你也可以传递其他参数
+     * 请务必传递包名信息，当然您也可以传递其他参数
      */
     public static void onStop(@NonNull SuperLyricData data) {
     }
@@ -52,7 +52,7 @@ public class SuperLyricPush {
     /**
      * 歌曲数据更改
      * <p>
-     * 请务必传递歌词和包名信息，当然你也可以传递其他参数
+     * 请务必传递歌词和包名信息，当然您也可以传递其他参数
      */
     public static void onSuperLyric(@NonNull SuperLyricData data) {
     }
@@ -83,7 +83,7 @@ public class SuperLyricPush {
     /**
      * 注册歌词控制器，注册成功后返回控制器
      * <p>
-     * 使用此控制器，你可以向所有接收器发送歌词等信息
+     * 使用此控制器，您可以向所有接收器发送歌词等信息
      * <p>
      * 一个软件最多只能注册一个控制器，重复注册返回的控制器相同
      *
@@ -125,7 +125,7 @@ public class SuperLyricPush {
     /**
      * 注销控制器
      * <p>
-     * 非常不建议使用，你没有必要手动取消注册
+     * 非常不建议使用，您没有必要手动取消注册
      * <p>
      * 因为实例会一直存在，并不会因为取消注册而消失
      * <p>

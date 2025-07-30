@@ -46,6 +46,13 @@ public class SuperLyricData implements Parcelable {
     @NonNull
     private String lyric = "";
     /**
+     * 翻译
+     * <p>
+     * 您可以使用此字段传递当前歌词的翻译
+     */
+    @NonNull
+    private String translation = "";
+    /**
      * 音乐软件的包名
      * <p>
      * 请务必设置包名，这是判断当前播放应用的唯一途径
@@ -57,7 +64,7 @@ public class SuperLyricData implements Parcelable {
      * <p>
      * Note：用途有限，要求传递方提供 Base64 样式的 Icon 不太现实
      * <p>
-     * 如果愿意你依然可以使用此方法传递 Base64 样式的 Icon
+     * 如果愿意您依然可以使用此方法传递 Base64 样式的 Icon
      *
      * @deprecated
      */
@@ -100,6 +107,13 @@ public class SuperLyricData implements Parcelable {
      */
     public boolean isExistLyric() {
         return !lyric.isEmpty();
+    }
+
+    /**
+     * 是否存在翻译数据
+     */
+    public boolean isExistTranslation() {
+        return !translation.isEmpty();
     }
 
     /**
@@ -153,6 +167,12 @@ public class SuperLyricData implements Parcelable {
         return this;
     }
 
+    public SuperLyricData setTranslation(@NonNull String translation) {
+        if (Objects.isNull(translation)) translation = "";
+        this.translation = translation;
+        return this;
+    }
+
     public SuperLyricData setPackageName(@NonNull String packageName) {
         if (Objects.isNull(packageName)) packageName = "";
         this.packageName = packageName;
@@ -189,6 +209,11 @@ public class SuperLyricData implements Parcelable {
     @NonNull
     public String getLyric() {
         return lyric;
+    }
+
+    @NonNull
+    public String getTranslation() {
+        return translation;
     }
 
     @NonNull
@@ -283,6 +308,7 @@ public class SuperLyricData implements Parcelable {
     public String toString() {
         return "SuperLyricData{" +
             "lyric='" + lyric + '\'' +
+            ", translation='" + translation + '\'' +
             ", packageName='" + packageName + '\'' +
             ", base64Icon='" + base64Icon + '\'' +
             ", delay=" + delay +
@@ -297,6 +323,7 @@ public class SuperLyricData implements Parcelable {
         if (!(o instanceof SuperLyricData data)) return false;
         return delay == data.delay &&
             Objects.equals(lyric, data.lyric) &&
+            Objects.equals(translation, data.translation) &&
             Objects.equals(packageName, data.packageName) &&
             Objects.equals(base64Icon, data.base64Icon) &&
             Objects.equals(mediaMetadata, data.mediaMetadata) &&
@@ -306,7 +333,7 @@ public class SuperLyricData implements Parcelable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(lyric, packageName, base64Icon, delay, mediaMetadata, playbackState, extra);
+        return Objects.hash(lyric, translation, packageName, base64Icon, delay, mediaMetadata, playbackState, extra);
     }
 
     public static final Creator<SuperLyricData> CREATOR = new Creator<SuperLyricData>() {
@@ -325,6 +352,7 @@ public class SuperLyricData implements Parcelable {
 
     private SuperLyricData(@NonNull Parcel in) {
         lyric = Optional.ofNullable(in.readString()).orElse("");
+        translation = Optional.ofNullable(in.readString()).orElse("");
         packageName = Optional.ofNullable(in.readString()).orElse("");
         base64Icon = Optional.ofNullable(in.readString()).orElse("");
         delay = in.readInt();
@@ -336,6 +364,7 @@ public class SuperLyricData implements Parcelable {
     @Override
     public void writeToParcel(@NonNull Parcel dest, int flags) {
         dest.writeString(lyric);
+        dest.writeString(translation);
         dest.writeString(packageName);
         dest.writeString(base64Icon);
         dest.writeInt(delay);
