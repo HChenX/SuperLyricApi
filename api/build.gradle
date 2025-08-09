@@ -88,6 +88,10 @@ afterEvaluate {
                 version = defVersionName
 
                 artifact androidSourcesJar
+
+                pom {
+                    packaging = "aar"
+                }
             }
         }
     }
