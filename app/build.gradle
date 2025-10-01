@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace 'com.hchen.test'
+    namespace 'com.hchen.superlyricapi'
     compileSdk 35
 
     defaultConfig {

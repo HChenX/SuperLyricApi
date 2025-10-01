@@ -424,8 +424,30 @@ public class SuperLyricData implements Parcelable {
          * 持续时间 (毫秒)
          * <p>
          * 当前单词的持续时间
+         * <p>
+         * 为了方便传递着使用，我们改用传递单词开始与结束时间来倒推当前单词的持续时间
+         * <p>
+         * 您依然可以使用此字段传递持续时间，我们也推荐使用 {@link EnhancedLRCData#getDelay()} 来获取持续时间
+         *
+         * @deprecated
          */
+        @Deprecated(since = "2.3")
         private int delay = 0;
+        /**
+         * 当前单词的开始时间
+         */
+        private int startTime = 0;
+        /**
+         * 当前单词的结束时间
+         */
+        private int endTime = 0;
+
+        public EnhancedLRCData(@NonNull String word, int startTime, int endTime) {
+            if (Objects.isNull(word)) word = "";
+            this.word = word;
+            this.startTime = startTime;
+            this.endTime = endTime;
+        }
 
         public EnhancedLRCData(@NonNull String word, int delay) {
             if (Objects.isNull(word)) word = "";
@@ -439,7 +461,19 @@ public class SuperLyricData implements Parcelable {
         }
 
         public int getDelay() {
-            return delay;
+            if (delay != 0) return delay;
+            if (startTime != 0 && endTime != 0) {
+                return endTime - startTime;
+            }
+            return 0;
+        }
+
+        public int getStartTime() {
+            return startTime;
+        }
+
+        public int getEndTime() {
+            return endTime;
         }
 
         @NonNull
@@ -448,18 +482,23 @@ public class SuperLyricData implements Parcelable {
             return "EnhancedLRCData{" +
                 "word='" + word + '\'' +
                 ", delay=" + delay +
+                ", startTime=" + startTime +
+                ", endTime=" + endTime +
                 '}';
         }
 
         @Override
         public boolean equals(Object o) {
             if (!(o instanceof EnhancedLRCData that)) return false;
-            return delay == that.delay && Objects.equals(word, that.word);
+            return delay == that.delay &&
+                startTime == that.startTime &&
+                endTime == that.endTime &&
+                Objects.equals(word, that.word);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(word, delay);
+            return Objects.hash(word, delay, startTime, endTime);
         }
 
         public static final Creator<EnhancedLRCData> CREATOR = new Creator<EnhancedLRCData>() {
@@ -479,12 +518,16 @@ public class SuperLyricData implements Parcelable {
         private EnhancedLRCData(@NonNull Parcel in) {
             word = Optional.ofNullable(in.readString()).orElse("");
             delay = in.readInt();
+            startTime = in.readInt();
+            endTime = in.readInt();
         }
 
         @Override
         public void writeToParcel(@NonNull Parcel dest, int flags) {
             dest.writeString(word);
             dest.writeInt(delay);
+            dest.writeInt(startTime);
+            dest.writeInt(endTime);
         }
 
         @Override
