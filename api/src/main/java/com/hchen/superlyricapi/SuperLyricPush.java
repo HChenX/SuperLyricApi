@@ -30,6 +30,7 @@ import android.os.RemoteException;
 
 import androidx.annotation.NonNull;
 
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -93,19 +94,23 @@ public class SuperLyricPush {
      */
     public static void registerSuperLyricController(@NonNull Context context, @NonNull Consumer<ISuperLyric> consumer) {
         Intent intent = context.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-        if (intent == null) return;
+        Objects.requireNonNull(intent, "Intent must not be null.");
+
         Bundle bundle = intent.getBundleExtra("super_lyric_info");
-        if (bundle == null) return;
+        Objects.requireNonNull(bundle, "Super lyric bundle must not be null.");
+
         IBinder iBinder = bundle.getBinder("super_lyric_controller");
-        if (iBinder == null) return;
+        Objects.requireNonNull(iBinder, "Super lyric controller must not be null.");
 
         try {
             final Messenger clientMessenger = new Messenger(
-                new Handler(msg -> {
-                    IBinder binder = msg.getData().getBinder("reply");
-                    if (binder == null) return true;
-                    consumer.accept(ISuperLyric.Stub.asInterface(binder));
-                    return true;
+                new Handler(new Handler.Callback() {
+                    @Override
+                    public boolean handleMessage(@NonNull Message msg) {
+                        IBinder binder = msg.getData().getBinder("reply");
+                        consumer.accept(ISuperLyric.Stub.asInterface(binder));
+                        return true;
+                    }
                 })
             );
 

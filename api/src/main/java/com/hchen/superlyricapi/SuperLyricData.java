@@ -93,11 +93,41 @@ public class SuperLyricData implements Parcelable {
     @Nullable
     private Bundle extra;
     /**
+     * Extra 包中用于存储次要歌词数据的 Key 值
+     * <p>
+     * 我们将使用此 Key 存储次要歌词数据
+     */
+    private static final String KEY_SECONDARY_LYRIC = "key_secondary_lyric";
+    /**
+     * Extra 包中用于存储次要歌词持续时间的 Key 值
+     * <p>
+     * 我们将使用此 Key 存储次要歌词的持续时间
+     */
+    private static final String KEY_SECONDARY_LYRIC_DELAY = "key_secondary_lyric_delay";
+    /**
+     * Extra 包中用于存储次要歌词逐字数据的 Key 值
+     * <p>
+     * 我们将使用此 Key 存储次要歌词的逐字数据
+     */
+    private static final String KEY_SECONDARY_LYRIC_ENHANCED_LRC_DATA = "key_secondary_lyric_enhanced_lrc_data";
+    /**
      * Extra 包中用于存储歌词翻译数据的 Key 值
      * <p>
      * 我们将使用此 Key 存储歌词翻译数据
      */
     private static final String KEY_TRANSLATION = "key_translation";
+    /**
+     * Extra 包中用于存储歌词翻译持续时间的 Key 值
+     * <p>
+     * 我们将使用此 Key 存储歌词翻译的持续时间
+     */
+    private static final String KEY_TRANSLATION_DELAY = "key_translation_delay";
+    /**
+     * Extra 包中用于储存歌词翻译逐字数据的 key 值
+     * <p>
+     * 我们将使用此 Key 存储歌词翻译的逐字数据
+     */
+    private static final String KEY_TRANSLATION_ENHANCED_LRC_DATA = "key_translation_enhanced_lrc_data";
     /**
      * Extra 包中用于存储逐字歌词数据的 Key 值
      * <p>
@@ -116,10 +146,45 @@ public class SuperLyricData implements Parcelable {
     }
 
     /**
+     * 是否存在次要歌词数据
+     */
+    public boolean isExistSecondaryLyric() {
+        return extra != null && extra.containsKey(KEY_SECONDARY_LYRIC);
+    }
+
+    /**
+     * 是否存在次要歌词持续时间数据
+     */
+    public boolean isExistSecondaryLyricDelay() {
+        return extra != null && extra.containsKey(KEY_SECONDARY_LYRIC_DELAY);
+    }
+
+    /**
+     * 是否存在次要歌词逐字数据
+     */
+    public boolean isExistSecondaryLyricEnhancedLRCData() {
+        return extra != null && extra.containsKey(KEY_SECONDARY_LYRIC_ENHANCED_LRC_DATA);
+    }
+
+    /**
      * 是否存在翻译数据
      */
     public boolean isExistTranslation() {
         return extra != null && extra.containsKey(KEY_TRANSLATION);
+    }
+
+    /**
+     * 是否存在翻译持续时间数据
+     */
+    public boolean isExistTranslationDelay() {
+        return extra != null && extra.containsKey(KEY_TRANSLATION_DELAY);
+    }
+
+    /**
+     * 是否存在翻译逐字数据
+     */
+    public boolean isExistTranslationEnhancedLRCData() {
+        return extra != null && extra.containsKey(KEY_TRANSLATION_ENHANCED_LRC_DATA);
     }
 
     /**
@@ -174,13 +239,35 @@ public class SuperLyricData implements Parcelable {
         return Objects.nonNull(extra);
     }
 
-    public SuperLyricData setLyric(@NonNull String lyric) {
+    public SuperLyricData setLyric(String lyric) {
         if (Objects.isNull(lyric)) lyric = "";
         this.lyric = lyric;
         return this;
     }
 
-    public SuperLyricData setTranslation(@NonNull String translation) {
+    public SuperLyricData setSecondaryLyric(String secondaryLyric) {
+        if (Objects.nonNull(secondaryLyric)) {
+            if (this.extra == null) this.extra = new Bundle();
+            this.extra.putString(KEY_SECONDARY_LYRIC, secondaryLyric);
+        }
+        return this;
+    }
+
+    public SuperLyricData setSecondaryLyricDelay(int delay) {
+        if (this.extra == null) this.extra = new Bundle();
+        this.extra.putInt(KEY_SECONDARY_LYRIC_DELAY, delay);
+        return this;
+    }
+
+    public SuperLyricData setSecondaryLyricEnhancedLRCData(EnhancedLRCData[] data) {
+        if (Objects.nonNull(data)) {
+            if (this.extra == null) this.extra = new Bundle();
+            this.extra.putParcelableArray(KEY_SECONDARY_LYRIC_ENHANCED_LRC_DATA, data);
+        }
+        return this;
+    }
+
+    public SuperLyricData setTranslation(String translation) {
         if (Objects.nonNull(translation)) {
             if (this.extra == null) this.extra = new Bundle();
             this.extra.putString(KEY_TRANSLATION, translation);
@@ -188,7 +275,21 @@ public class SuperLyricData implements Parcelable {
         return this;
     }
 
-    public SuperLyricData setEnhancedLRCData(@NonNull EnhancedLRCData[] data) {
+    public SuperLyricData setTranslationDelay(int delay) {
+        if (this.extra == null) this.extra = new Bundle();
+        this.extra.putInt(KEY_TRANSLATION_DELAY, delay);
+        return this;
+    }
+
+    public SuperLyricData setTranslationEnhancedLRCData(EnhancedLRCData[] data) {
+        if (Objects.nonNull(data)) {
+            if (this.extra == null) this.extra = new Bundle();
+            this.extra.putParcelableArray(KEY_TRANSLATION_ENHANCED_LRC_DATA, data);
+        }
+        return this;
+    }
+
+    public SuperLyricData setEnhancedLRCData(EnhancedLRCData[] data) {
         if (Objects.nonNull(data)) {
             if (this.extra == null) this.extra = new Bundle();
             this.extra.putParcelableArray(KEY_ENHANCED_LRC_DATA, data);
@@ -196,14 +297,14 @@ public class SuperLyricData implements Parcelable {
         return this;
     }
 
-    public SuperLyricData setPackageName(@NonNull String packageName) {
+    public SuperLyricData setPackageName(String packageName) {
         if (Objects.isNull(packageName)) packageName = "";
         this.packageName = packageName;
         return this;
     }
 
     @Deprecated(since = "1.8")
-    public SuperLyricData setBase64Icon(@NonNull String base64Icon) {
+    public SuperLyricData setBase64Icon(String base64Icon) {
         if (Objects.isNull(base64Icon)) base64Icon = "";
         this.base64Icon = base64Icon;
         return this;
@@ -214,19 +315,23 @@ public class SuperLyricData implements Parcelable {
         return this;
     }
 
-    public SuperLyricData setMediaMetadata(@NonNull MediaMetadata mediaMetadata) {
+    public SuperLyricData setMediaMetadata(MediaMetadata mediaMetadata) {
         this.mediaMetadata = SuperLyricTool.removeMediaMetadataBitmap(mediaMetadata);
         return this;
     }
 
-    public SuperLyricData setPlaybackState(@NonNull PlaybackState playbackState) {
+    public SuperLyricData setPlaybackState(PlaybackState playbackState) {
         this.playbackState = playbackState;
         return this;
     }
 
-    public SuperLyricData setExtra(@NonNull Bundle extra) {
+    public SuperLyricData setExtra(Bundle extra) {
         if (this.extra == null) this.extra = extra;
-        else this.extra.putAll(extra);
+        else {
+            if (extra != null) {
+                this.extra.putAll(extra);
+            }
+        }
         return this;
     }
 
@@ -236,8 +341,40 @@ public class SuperLyricData implements Parcelable {
     }
 
     @Nullable
+    public String getSecondaryLyric() {
+        return extra != null ? extra.getString(KEY_SECONDARY_LYRIC) : null;
+    }
+
+    public int getSecondaryLyricDelay() {
+        return extra != null ? extra.getInt(KEY_SECONDARY_LYRIC_DELAY) : 0;
+    }
+
+    @Nullable
+    public EnhancedLRCData[] getSecondaryLyricEnhancedLRCData() {
+        if (extra == null) return null;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+            return extra.getParcelableArray(KEY_SECONDARY_LYRIC_ENHANCED_LRC_DATA, EnhancedLRCData.class);
+        else
+            return (EnhancedLRCData[]) extra.getParcelableArray(KEY_SECONDARY_LYRIC_ENHANCED_LRC_DATA);
+    }
+
+    @Nullable
     public String getTranslation() {
         return extra != null ? extra.getString(KEY_TRANSLATION) : null;
+    }
+
+    public int getTranslationDelay() {
+        return extra != null ? extra.getInt(KEY_TRANSLATION_DELAY) : 0;
+    }
+
+    @Nullable
+    public EnhancedLRCData[] getTranslationEnhancedLRCData() {
+        if (extra == null) return null;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+            return extra.getParcelableArray(KEY_TRANSLATION_ENHANCED_LRC_DATA, EnhancedLRCData.class);
+        else return (EnhancedLRCData[]) extra.getParcelableArray(KEY_TRANSLATION_ENHANCED_LRC_DATA);
     }
 
     @Nullable
@@ -315,6 +452,40 @@ public class SuperLyricData implements Parcelable {
         return Optional.ofNullable(
             mediaMetadata.getString(METADATA_KEY_ALBUM)
         ).orElse("Unknown");
+    }
+
+    /**
+     * 合并已有的 SuperLyricData 的数据
+     */
+    @NonNull
+    public SuperLyricData merge(SuperLyricData data) {
+        if (data == null) return this;
+
+        if (data.isExistLyric())
+            this.lyric = data.lyric;
+
+        if (data.isExistPackageName())
+            this.packageName = data.packageName;
+
+        if (data.isExistDelay())
+            this.delay = data.delay;
+
+        if (data.isExistMediaMetadata())
+            this.mediaMetadata = data.mediaMetadata;
+
+        if (data.isExistPlaybackState())
+            this.playbackState = data.playbackState;
+
+        if (data.extra != null) {
+            if (this.extra == null)
+                this.extra = new Bundle();
+            this.extra.putAll(data.extra);
+        }
+
+        if (data.isExistBase64Icon())
+            this.base64Icon = data.base64Icon;
+
+        return this;
     }
 
     /**
@@ -462,7 +633,7 @@ public class SuperLyricData implements Parcelable {
 
         public int getDelay() {
             if (delay != 0) return delay;
-            if (startTime != 0 && endTime != 0) {
+            if (endTime > startTime) {
                 return endTime - startTime;
             }
             return 0;

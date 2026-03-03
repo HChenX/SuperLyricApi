@@ -3,16 +3,18 @@ plugins {
     id 'maven-publish'
 }
 
-def defVersionName = '2.4'
-def defVersionCode = 24
+def defVersionName = '2.5'
+def defVersionCode = 25
 
 android {
     namespace 'com.hchen.superlyricapi'
-    compileSdk 35
+    compileSdk {
+        version = release(36)
+    }
 
     defaultConfig {
         minSdk 26
-        targetSdk 35
+        targetSdk 36
 
         aarMetadata {
             minCompileSdk = 26
