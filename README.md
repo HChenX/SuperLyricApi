@@ -36,7 +36,7 @@ dependencyResolutionManagement {
 }
 
 dependencies {
-    implementation 'com.github.HChenX:SuperLyricApi:2.4' // 引入依赖
+    implementation 'com.github.HChenX:SuperLyricApi:2.5' // 引入依赖
 }
 ```
 
@@ -60,11 +60,18 @@ public class Test {
             public void onSuperLyric(SuperLyricData data) throws RemoteException {
                 // 歌曲歌词变化或数据变化时会调用
                 data.getLyric(); // 歌词
-                data.getTranslation(); // 歌词的翻译
-                data.getDelay(); // 当前歌词的持续时间 (0 值代表无效)
+                data.getDelay(); // 当前歌词的持续时间
                 data.getPackageName(); // 发布歌词的软件
+                data.getSecondaryLyric(); // 次要歌词
+                data.getSecondaryLyricDelay(); // 次要歌词持续时间
+                data.getSecondaryLyricEnhancedLRCData(); // 次要歌词逐字数据 (可能为 null)
+                data.getTranslation(); // 歌词的翻译
+                data.getTranslationDelay(); // 歌词翻译持续时间
+                data.getTranslationEnhancedLRCData(); // 歌词翻译逐字数据 (可能为 null)
                 data.getMediaMetadata(); // 歌曲数据 (可能为 null)
-                data.getEnhancedLRCData(); // 逐字歌词数据
+                data.getPlaybackState(); // 播放状态 (可能为 null)
+                data.getEnhancedLRCData(); // 逐字歌词数据 (可能为 null)
+                data.getExtra(); // 其他数据 (可能为 null)
                 ...
             }
 
@@ -104,14 +111,22 @@ public class Test {
         SuperLyricPush.onSuperLyric(
             new SuperLyricData()
                 .setLyric() // 设置歌词 (必选)
-                .setTranslation() // 当前歌词的翻译 (可选)
-                .setPackageName() // 设置软件包名 (必选)
                 .setDelay() // 设置当前歌词持续时间 (可选)
+                .setPackageName() // 设置软件包名 (必选)
+                .setSecondaryLyric() // 设置次要歌词 (必选)
+                .setSecondaryLyricDelay() // 设置次要歌词持续时间 (必选)
+                .setSecondaryLyricEnhancedLRCData() // 设置次要歌词逐字数据 (必选)
+                .setTranslation() // 当前歌词的翻译 (可选)
+                .setTranslationDelay() // 当前歌词翻译的持续时间 (可选)
+                .setTranslationEnhancedLRCData() // 当前歌词翻译的逐字数据 (可选)
                 .setMediaMetadata() // 设置歌曲数据 (可选)
                 .setPlaybackState() // 设置播放状态 (可选)
                 .setExtra(new Bundle()) // 设置其他附加数据 (可选)
                 .setEnhancedLRCData(new SuperLyricData.EnhancedLRCData[]{
-                    new SuperLyricData.EnhancedLRCData("Test Word", 100)
+                    new SuperLyricData.EnhancedLRCData("T", 100),
+                    new SuperLyricData.EnhancedLRCData("e", 100),
+                    new SuperLyricData.EnhancedLRCData("s", 100),
+                    new SuperLyricData.EnhancedLRCData("t", 100)
                 }) // 逐字歌词数据 (可选)
                 ...
         ); // 发布歌词
