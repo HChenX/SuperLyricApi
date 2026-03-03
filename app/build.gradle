@@ -3,13 +3,13 @@ plugins {
 }
 
 android {
-    namespace 'com.hchen.superlyricapi'
+    namespace 'com.hchen.superlyricapi.sample'
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId "com.hchen.test"
+        applicationId "com.hchen.superlyricapi.sample"
         minSdk 26
         targetSdk 36
         versionCode 1
