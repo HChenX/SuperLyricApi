@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with SuperLyricApi. If not, see <https://www.gnu.org/licenses/lgpl-2.1>.
  *
- * Copyright (C) 2023–2025 HChenX
+ * Copyright (C) 2025–2026 HChenX
  */
 package com.hchen.superlyricapi;
 
@@ -134,6 +134,14 @@ public class SuperLyricData implements Parcelable {
      * 我们将使用此 Key 存储逐字歌词数据
      */
     private static final String KEY_ENHANCED_LRC_DATA = "key_enhanced_lrc_data";
+    /**
+     * Extra 包中用于存储传输模式的 Key 值
+     * <p>
+     * 我们将使用此 Key 标识当前传递者的传递模式
+     * <p>
+     * 通常来说您并不需要手动设置，将由模块自动设置
+     */
+    private static final String KEY_TRANSMISSION_MODE = "key_transmission_mode";
 
     public SuperLyricData() {
     }
@@ -192,6 +200,13 @@ public class SuperLyricData implements Parcelable {
      */
     public boolean isExistEnhancedLRCData() {
         return extra != null && extra.containsKey(KEY_ENHANCED_LRC_DATA);
+    }
+
+    /**
+     * 是否存在传输模式数据
+     */
+    public boolean isExistTransmissionMode() {
+        return extra != null && extra.containsKey(KEY_TRANSMISSION_MODE);
     }
 
     /**
@@ -297,6 +312,14 @@ public class SuperLyricData implements Parcelable {
         return this;
     }
 
+    public SuperLyricData setTransmissionMode(TransmissionMode mode) {
+        if (Objects.nonNull(mode)) {
+            if (this.extra == null) this.extra = new Bundle();
+            this.extra.putString(KEY_TRANSMISSION_MODE, mode.name());
+        }
+        return this;
+    }
+
     public SuperLyricData setPackageName(String packageName) {
         if (Objects.isNull(packageName)) packageName = "";
         this.packageName = packageName;
@@ -384,6 +407,15 @@ public class SuperLyricData implements Parcelable {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
             return extra.getParcelableArray(KEY_ENHANCED_LRC_DATA, EnhancedLRCData.class);
         else return (EnhancedLRCData[]) extra.getParcelableArray(KEY_ENHANCED_LRC_DATA);
+    }
+
+    @NonNull
+    public TransmissionMode getTransmissionMode() {
+        if (extra == null) return TransmissionMode.OTHER_LYRIC;
+
+        String name = extra.getString(KEY_TRANSMISSION_MODE);
+        return name == null ? TransmissionMode.OTHER_LYRIC :
+            TransmissionMode.valueOf(name);
     }
 
     @NonNull

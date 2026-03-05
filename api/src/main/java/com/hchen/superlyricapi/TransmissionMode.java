@@ -16,23 +16,26 @@
  *
  * Copyright (C) 2025–2026 HChenX
  */
-// ISuperLyric.aidl
 package com.hchen.superlyricapi;
 
-// Declare any non-default types here with import statements
-parcelable SuperLyricData;
-
-interface ISuperLyric {
-    /**
-     * Demonstrates some basic types that you can use as parameters
-     * and return values in AIDL.
-     */
-    // void basicTypes(int anInt, long aLong, boolean aBoolean, float aFloat,
-    //          double aDouble, String aString);
-
-    // 发布歌曲状态暂停
-    void onStop(in SuperLyricData data);
-
-    // 发布歌曲状态变化
-    void onSuperLyric(in SuperLyricData data);
+/**
+ * 传输模式
+ *
+ * @author 焕晨HChen
+ */
+public enum TransmissionMode {
+    // 通过 魅族状态栏歌词 功能获取的歌词
+    MEIZU_STATUS_BAR_LYRIC,
+    // 通过 状态栏歌词 功能获取的歌词
+    STATUS_BAR_LYRIC,
+    // 通过 桌面歌词 功能获取的歌词
+    DESKTOP_LYRIC,
+    // 通过 蓝牙歌词 功能获取的歌词
+    BLUETOOTH_LYRIC,
+    // 通过 Hook 获取的歌词
+    HOOK_LYRIC,
+    // 通过 API 原生获取的歌词
+    API_LYRIC,
+    // 通过其他途径获取的歌词
+    OTHER_LYRIC
 }

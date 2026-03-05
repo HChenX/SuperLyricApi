@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with SuperLyricApi. If not, see <https://www.gnu.org/licenses/lgpl-2.1>.
  *
- * Copyright (C) 2023–2025 HChenX
+ * Copyright (C) 2025–2026 HChenX
  */
 package com.hchen.superlyricapi;
 
