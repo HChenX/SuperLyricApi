@@ -109,7 +109,7 @@ public class SuperLyricData implements Parcelable {
      * <p>
      * 我们将使用此 Key 存储次要歌词的逐字数据
      */
-    private static final String KEY_SECONDARY_LYRIC_ENHANCED_LRC_DATA = "key_secondary_lyric_enhanced_lrc_data";
+    private static final String KEY_SECONDARY_LYRIC_WORD_DATA = "key_secondary_lyric_word_data";
     /**
      * Extra 包中用于存储歌词翻译数据的 Key 值
      * <p>
@@ -127,21 +127,21 @@ public class SuperLyricData implements Parcelable {
      * <p>
      * 我们将使用此 Key 存储歌词翻译的逐字数据
      */
-    private static final String KEY_TRANSLATION_ENHANCED_LRC_DATA = "key_translation_enhanced_lrc_data";
+    private static final String KEY_TRANSLATION_WORD_DATA = "key_translation_word_data";
     /**
      * Extra 包中用于存储逐字歌词数据的 Key 值
      * <p>
      * 我们将使用此 Key 存储逐字歌词数据
      */
-    private static final String KEY_ENHANCED_LRC_DATA = "key_enhanced_lrc_data";
+    private static final String KEY_LYRIC_WORD_DATA = "key_lyric_word_data";
     /**
-     * Extra 包中用于存储传输模式的 Key 值
+     * Extra 包中用于存储采集模式的 Key 值
      * <p>
-     * 我们将使用此 Key 标识当前传递者的传递模式
+     * 我们将使用此 Key 标识当前传递者的采集模式
      * <p>
      * 通常来说您并不需要手动设置，将由模块自动设置
      */
-    private static final String KEY_TRANSMISSION_MODE = "key_transmission_mode";
+    private static final String KEY_ACQUISITION_MODE = "key_acquisition_mode";
 
     public SuperLyricData() {
     }
@@ -149,77 +149,77 @@ public class SuperLyricData implements Parcelable {
     /**
      * 是否存在歌词数据
      */
-    public boolean isExistLyric() {
+    public boolean hasLyric() {
         return !lyric.isEmpty();
     }
 
     /**
      * 是否存在次要歌词数据
      */
-    public boolean isExistSecondaryLyric() {
+    public boolean hasSecondaryLyric() {
         return extra != null && extra.containsKey(KEY_SECONDARY_LYRIC);
     }
 
     /**
      * 是否存在次要歌词持续时间数据
      */
-    public boolean isExistSecondaryLyricDelay() {
+    public boolean hasSecondaryLyricDelay() {
         return extra != null && extra.containsKey(KEY_SECONDARY_LYRIC_DELAY);
     }
 
     /**
      * 是否存在次要歌词逐字数据
      */
-    public boolean isExistSecondaryLyricEnhancedLRCData() {
-        return extra != null && extra.containsKey(KEY_SECONDARY_LYRIC_ENHANCED_LRC_DATA);
+    public boolean hasSecondaryLyricWordData() {
+        return extra != null && extra.containsKey(KEY_SECONDARY_LYRIC_WORD_DATA);
     }
 
     /**
      * 是否存在翻译数据
      */
-    public boolean isExistTranslation() {
+    public boolean hasTranslation() {
         return extra != null && extra.containsKey(KEY_TRANSLATION);
     }
 
     /**
      * 是否存在翻译持续时间数据
      */
-    public boolean isExistTranslationDelay() {
+    public boolean hasTranslationDelay() {
         return extra != null && extra.containsKey(KEY_TRANSLATION_DELAY);
     }
 
     /**
      * 是否存在翻译逐字数据
      */
-    public boolean isExistTranslationEnhancedLRCData() {
-        return extra != null && extra.containsKey(KEY_TRANSLATION_ENHANCED_LRC_DATA);
+    public boolean hasTranslationWordData() {
+        return extra != null && extra.containsKey(KEY_TRANSLATION_WORD_DATA);
     }
 
     /**
      * 是否存在逐字歌词数据
      */
-    public boolean isExistEnhancedLRCData() {
-        return extra != null && extra.containsKey(KEY_ENHANCED_LRC_DATA);
+    public boolean hasLyricWordData() {
+        return extra != null && extra.containsKey(KEY_LYRIC_WORD_DATA);
     }
 
     /**
-     * 是否存在传输模式数据
+     * 是否存在采集模式数据
      */
-    public boolean isExistTransmissionMode() {
-        return extra != null && extra.containsKey(KEY_TRANSMISSION_MODE);
+    public boolean hasAcquisitionMode() {
+        return extra != null && extra.containsKey(KEY_ACQUISITION_MODE);
     }
 
     /**
      * 是否存在包名数据
      */
-    public boolean isExistPackageName() {
+    public boolean hasPackageName() {
         return !packageName.isEmpty();
     }
 
     /**
      * 是否存在 Delay 数据
      */
-    public boolean isExistDelay() {
+    public boolean hasDelay() {
         return delay > 0;
     }
 
@@ -229,28 +229,28 @@ public class SuperLyricData implements Parcelable {
      * @deprecated
      */
     @Deprecated(since = "1.8")
-    public boolean isExistBase64Icon() {
+    public boolean hasBase64Icon() {
         return !base64Icon.isEmpty();
     }
 
     /**
      * 是否存在 MediaMetadata 数据
      */
-    public boolean isExistMediaMetadata() {
+    public boolean hasMediaMetadata() {
         return Objects.nonNull(mediaMetadata);
     }
 
     /**
      * 是否存在 PlaybackState 数据
      */
-    public boolean isExistPlaybackState() {
+    public boolean hasPlaybackState() {
         return Objects.nonNull(playbackState);
     }
 
     /**
      * 是否存在附加数据
      */
-    public boolean isExistExtra() {
+    public boolean hasExtra() {
         return Objects.nonNull(extra);
     }
 
@@ -274,10 +274,10 @@ public class SuperLyricData implements Parcelable {
         return this;
     }
 
-    public SuperLyricData setSecondaryLyricEnhancedLRCData(EnhancedLRCData[] data) {
+    public SuperLyricData setSecondaryLyricWordData(SuperLyricWord[] data) {
         if (Objects.nonNull(data)) {
             if (this.extra == null) this.extra = new Bundle();
-            this.extra.putParcelableArray(KEY_SECONDARY_LYRIC_ENHANCED_LRC_DATA, data);
+            this.extra.putParcelableArray(KEY_SECONDARY_LYRIC_WORD_DATA, data);
         }
         return this;
     }
@@ -296,26 +296,26 @@ public class SuperLyricData implements Parcelable {
         return this;
     }
 
-    public SuperLyricData setTranslationEnhancedLRCData(EnhancedLRCData[] data) {
+    public SuperLyricData setTranslationWordData(SuperLyricWord[] data) {
         if (Objects.nonNull(data)) {
             if (this.extra == null) this.extra = new Bundle();
-            this.extra.putParcelableArray(KEY_TRANSLATION_ENHANCED_LRC_DATA, data);
+            this.extra.putParcelableArray(KEY_TRANSLATION_WORD_DATA, data);
         }
         return this;
     }
 
-    public SuperLyricData setEnhancedLRCData(EnhancedLRCData[] data) {
+    public SuperLyricData setLyricWordData(SuperLyricWord[] data) {
         if (Objects.nonNull(data)) {
             if (this.extra == null) this.extra = new Bundle();
-            this.extra.putParcelableArray(KEY_ENHANCED_LRC_DATA, data);
+            this.extra.putParcelableArray(KEY_LYRIC_WORD_DATA, data);
         }
         return this;
     }
 
-    public SuperLyricData setTransmissionMode(TransmissionMode mode) {
+    public SuperLyricData setAcquisitionMode(AcquisitionMode mode) {
         if (Objects.nonNull(mode)) {
             if (this.extra == null) this.extra = new Bundle();
-            this.extra.putString(KEY_TRANSMISSION_MODE, mode.name());
+            this.extra.putString(KEY_ACQUISITION_MODE, mode.name());
         }
         return this;
     }
@@ -363,9 +363,9 @@ public class SuperLyricData implements Parcelable {
         return lyric;
     }
 
-    @Nullable
+    @NonNull
     public String getSecondaryLyric() {
-        return extra != null ? extra.getString(KEY_SECONDARY_LYRIC) : null;
+        return extra != null ? Optional.ofNullable(extra.getString(KEY_SECONDARY_LYRIC)).orElse("") : "";
     }
 
     public int getSecondaryLyricDelay() {
@@ -373,18 +373,18 @@ public class SuperLyricData implements Parcelable {
     }
 
     @Nullable
-    public EnhancedLRCData[] getSecondaryLyricEnhancedLRCData() {
+    public SuperLyricWord[] getSecondaryLyricWordData() {
         if (extra == null) return null;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            return extra.getParcelableArray(KEY_SECONDARY_LYRIC_ENHANCED_LRC_DATA, EnhancedLRCData.class);
+            return extra.getParcelableArray(KEY_SECONDARY_LYRIC_WORD_DATA, SuperLyricWord.class);
         else
-            return (EnhancedLRCData[]) extra.getParcelableArray(KEY_SECONDARY_LYRIC_ENHANCED_LRC_DATA);
+            return (SuperLyricWord[]) extra.getParcelableArray(KEY_SECONDARY_LYRIC_WORD_DATA);
     }
 
-    @Nullable
+    @NonNull
     public String getTranslation() {
-        return extra != null ? extra.getString(KEY_TRANSLATION) : null;
+        return extra != null ? Optional.ofNullable(extra.getString(KEY_TRANSLATION)).orElse("") : "";
     }
 
     public int getTranslationDelay() {
@@ -392,30 +392,30 @@ public class SuperLyricData implements Parcelable {
     }
 
     @Nullable
-    public EnhancedLRCData[] getTranslationEnhancedLRCData() {
+    public SuperLyricWord[] getTranslationWordData() {
         if (extra == null) return null;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            return extra.getParcelableArray(KEY_TRANSLATION_ENHANCED_LRC_DATA, EnhancedLRCData.class);
-        else return (EnhancedLRCData[]) extra.getParcelableArray(KEY_TRANSLATION_ENHANCED_LRC_DATA);
+            return extra.getParcelableArray(KEY_TRANSLATION_WORD_DATA, SuperLyricWord.class);
+        else return (SuperLyricWord[]) extra.getParcelableArray(KEY_TRANSLATION_WORD_DATA);
     }
 
     @Nullable
-    public EnhancedLRCData[] getEnhancedLRCData() {
+    public SuperLyricWord[] getLyricWordData() {
         if (extra == null) return null;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            return extra.getParcelableArray(KEY_ENHANCED_LRC_DATA, EnhancedLRCData.class);
-        else return (EnhancedLRCData[]) extra.getParcelableArray(KEY_ENHANCED_LRC_DATA);
+            return extra.getParcelableArray(KEY_LYRIC_WORD_DATA, SuperLyricWord.class);
+        else return (SuperLyricWord[]) extra.getParcelableArray(KEY_LYRIC_WORD_DATA);
     }
 
     @NonNull
-    public TransmissionMode getTransmissionMode() {
-        if (extra == null) return TransmissionMode.OTHER_LYRIC;
+    public AcquisitionMode getAcquisitionMode() {
+        if (extra == null) return AcquisitionMode.HOOK_LYRIC;
 
-        String name = extra.getString(KEY_TRANSMISSION_MODE);
-        return name == null ? TransmissionMode.OTHER_LYRIC :
-            TransmissionMode.valueOf(name);
+        String name = extra.getString(KEY_ACQUISITION_MODE);
+        return name == null ? AcquisitionMode.HOOK_LYRIC :
+            AcquisitionMode.valueOf(name);
     }
 
     @NonNull
@@ -493,19 +493,19 @@ public class SuperLyricData implements Parcelable {
     public SuperLyricData merge(SuperLyricData data) {
         if (data == null) return this;
 
-        if (data.isExistLyric())
+        if (data.hasLyric())
             this.lyric = data.lyric;
 
-        if (data.isExistPackageName())
+        if (data.hasPackageName())
             this.packageName = data.packageName;
 
-        if (data.isExistDelay())
+        if (data.hasDelay())
             this.delay = data.delay;
 
-        if (data.isExistMediaMetadata())
+        if (data.hasMediaMetadata())
             this.mediaMetadata = data.mediaMetadata;
 
-        if (data.isExistPlaybackState())
+        if (data.hasPlaybackState())
             this.playbackState = data.playbackState;
 
         if (data.extra != null) {
@@ -514,7 +514,7 @@ public class SuperLyricData implements Parcelable {
             this.extra.putAll(data.extra);
         }
 
-        if (data.isExistBase64Icon())
+        if (data.hasBase64Icon())
             this.base64Icon = data.base64Icon;
 
         return this;
@@ -608,134 +608,5 @@ public class SuperLyricData implements Parcelable {
     @Override
     public int describeContents() {
         return 0;
-    }
-
-    /**
-     * 逐字歌词数据信息
-     * <p>
-     * 我们将通过此数据包实现对逐字歌词的支持
-     */
-    public static class EnhancedLRCData implements Parcelable {
-        /**
-         * 单词
-         * <p>
-         * 我们将使用此字段传递当前歌词的某个单词数据
-         */
-        @NonNull
-        private String word = "";
-        /**
-         * 持续时间 (毫秒)
-         * <p>
-         * 当前单词的持续时间
-         * <p>
-         * 为了方便传递着使用，我们改用传递单词开始与结束时间来倒推当前单词的持续时间
-         * <p>
-         * 您依然可以使用此字段传递持续时间，我们也推荐使用 {@link EnhancedLRCData#getDelay()} 来获取持续时间
-         *
-         * @deprecated
-         */
-        @Deprecated(since = "2.3")
-        private int delay = 0;
-        /**
-         * 当前单词的开始时间
-         */
-        private int startTime = 0;
-        /**
-         * 当前单词的结束时间
-         */
-        private int endTime = 0;
-
-        public EnhancedLRCData(@NonNull String word, int startTime, int endTime) {
-            if (Objects.isNull(word)) word = "";
-            this.word = word;
-            this.startTime = startTime;
-            this.endTime = endTime;
-        }
-
-        public EnhancedLRCData(@NonNull String word, int delay) {
-            if (Objects.isNull(word)) word = "";
-            this.word = word;
-            this.delay = delay;
-        }
-
-        @NonNull
-        public String getWord() {
-            return word;
-        }
-
-        public int getDelay() {
-            if (delay != 0) return delay;
-            if (endTime > startTime) {
-                return endTime - startTime;
-            }
-            return 0;
-        }
-
-        public int getStartTime() {
-            return startTime;
-        }
-
-        public int getEndTime() {
-            return endTime;
-        }
-
-        @NonNull
-        @Override
-        public String toString() {
-            return "EnhancedLRCData{" +
-                "word='" + word + '\'' +
-                ", delay=" + delay +
-                ", startTime=" + startTime +
-                ", endTime=" + endTime +
-                '}';
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (!(o instanceof EnhancedLRCData that)) return false;
-            return delay == that.delay &&
-                startTime == that.startTime &&
-                endTime == that.endTime &&
-                Objects.equals(word, that.word);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(word, delay, startTime, endTime);
-        }
-
-        public static final Creator<EnhancedLRCData> CREATOR = new Creator<EnhancedLRCData>() {
-            @NonNull
-            @Override
-            public EnhancedLRCData createFromParcel(Parcel in) {
-                return new EnhancedLRCData(in);
-            }
-
-            @NonNull
-            @Override
-            public EnhancedLRCData[] newArray(int size) {
-                return new EnhancedLRCData[size];
-            }
-        };
-
-        private EnhancedLRCData(@NonNull Parcel in) {
-            word = Optional.ofNullable(in.readString()).orElse("");
-            delay = in.readInt();
-            startTime = in.readInt();
-            endTime = in.readInt();
-        }
-
-        @Override
-        public void writeToParcel(@NonNull Parcel dest, int flags) {
-            dest.writeString(word);
-            dest.writeInt(delay);
-            dest.writeInt(startTime);
-            dest.writeInt(endTime);
-        }
-
-        @Override
-        public int describeContents() {
-            return 0;
-        }
     }
 }

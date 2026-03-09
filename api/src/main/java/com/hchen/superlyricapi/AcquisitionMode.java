@@ -19,23 +19,18 @@
 package com.hchen.superlyricapi;
 
 /**
- * 传输模式
+ * 采集模式
  *
  * @author 焕晨HChen
  */
-public enum TransmissionMode {
-    // 通过 魅族状态栏歌词 功能获取的歌词
-    MEIZU_STATUS_BAR_LYRIC,
-    // 通过 状态栏歌词 功能获取的歌词
-    STATUS_BAR_LYRIC,
-    // 通过 桌面歌词 功能获取的歌词
-    DESKTOP_LYRIC,
-    // 通过 蓝牙歌词 功能获取的歌词
+public enum AcquisitionMode {
+    // 我们在此特地区分使用 蓝牙歌词 功能获取歌词的类型
+    // 因为使用 蓝牙歌词 获取时，MediaMetadata 的 METADATA_KEY_TITLE 参数会被用于传递歌词
+    // 此时使用 METADATA_KEY_TITLE 获取歌曲标题是不准确的，此字段可以帮助您区分是否可以正常使用 METADATA_KEY_TITLE 参数
+    // 通过 蓝牙歌词 获取歌词
     BLUETOOTH_LYRIC,
-    // 通过 Hook 获取的歌词
+    // 通过 Hook 获取歌词
     HOOK_LYRIC,
-    // 通过 API 原生获取的歌词
-    API_LYRIC,
-    // 通过其他途径获取的歌词
-    OTHER_LYRIC
+    // 通过 API 原生获取歌词
+    API_LYRIC
 }
