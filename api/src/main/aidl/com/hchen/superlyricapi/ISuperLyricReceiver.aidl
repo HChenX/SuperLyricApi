@@ -16,21 +16,23 @@
  *
  * Copyright (C) 2025–2026 HChenX
  */
+// ISuperLyricReceiver.aidl
 package com.hchen.superlyricapi;
 
-/**
- * 采集模式
- *
- * @author 焕晨HChen
- */
-public enum AcquisitionMode {
-    // 我们在此特地区分使用 蓝牙歌词 功能获取歌词的类型
-    // 因为使用 蓝牙歌词 获取时，MediaMetadata 的 METADATA_KEY_TITLE 参数会被用于传递歌词
-    // 此时使用 METADATA_KEY_TITLE 获取歌曲标题是不准确的，此字段可以帮助您区分是否可以正常使用 METADATA_KEY_TITLE 参数
-    // 通过 蓝牙歌词 获取歌词
-    BLUETOOTH_LYRIC,
-    // 通过 Hook 获取歌词
-    HOOK_LYRIC,
-    // 通过 API 原生获取歌词
-    API_LYRIC
+// Declare any non-default types here with import statements
+import com.hchen.superlyricapi.SuperLyricData;
+
+interface ISuperLyricReceiver {
+    /**
+     * Demonstrates some basic types that you can use as parameters
+     * and return values in AIDL.
+     */
+    // void basicTypes(int anInt, long aLong, boolean aBoolean, float aFloat,
+    //          double aDouble, String aString);
+
+    // 接收数据时调用
+    void onLyric(in SuperLyricData data);
+
+    // 暂停时调用
+    void onStop(in SuperLyricData data);
 }
