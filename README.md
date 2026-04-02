@@ -17,8 +17,7 @@
 
 ## ✨ API 介绍
 
-- 引入本 API 可使您简易的获取或发送歌词。
-- 本 API 可供模块获取歌词使用或音乐软件主动发送歌词使用。
+- 本 API 提供了简洁的接口供模块获取歌词或第三方音乐软件发布歌词使用
 
 ---
 
@@ -36,11 +35,11 @@ dependencyResolutionManagement {
 }
 
 dependencies {
-    implementation 'com.github.HChenX:SuperLyricApi:2.5' // 引入依赖
+    implementation 'com.github.HChenX:SuperLyricApi:3.2' // 引入依赖
 }
 ```
 
-- 同步项目并下载完成后即可使用本 API。
+- 同步项目后即可使用本 API。
 
 ---
 
@@ -51,26 +50,24 @@ dependencies {
 ```java
 public class Test {
     public void test() {
-        Context context = null; // 假设上下文
-
-        ISuperLyric.Stub iSuperLyric;
+        ISuperLyricReceiver.Stub receiver;
         // 注册监听
-        SuperLyricTool.registerSuperLyric(context, iSuperLyric = new ISuperLyric.Stub() {
+        SuperLyricHelper.registerReceiver(receiver = new ISuperLyricReceiver.Stub() {
             @Override
-            public void onSuperLyric(SuperLyricData data) throws RemoteException {
+            public void onLyric(SuperLyricData data) throws RemoteException {
                 // 歌曲歌词变化或数据变化时会调用
                 data.getLyric(); // 歌词
                 data.getDelay(); // 当前歌词的持续时间
+                data.getLyricWordData(); // 逐字歌词数据 (可能为 null)
                 data.getPackageName(); // 发布歌词的软件
                 data.getSecondaryLyric(); // 次要歌词
                 data.getSecondaryLyricDelay(); // 次要歌词持续时间
-                data.getSecondaryLyricEnhancedLRCData(); // 次要歌词逐字数据 (可能为 null)
+                data.getSecondaryLyricWordData(); // 次要歌词逐字数据 (可能为 null)
                 data.getTranslation(); // 歌词的翻译
                 data.getTranslationDelay(); // 歌词翻译持续时间
-                data.getTranslationEnhancedLRCData(); // 歌词翻译逐字数据 (可能为 null)
+                data.getTranslationWordData(); // 歌词翻译逐字数据 (可能为 null)
                 data.getMediaMetadata(); // 歌曲数据 (可能为 null)
                 data.getPlaybackState(); // 播放状态 (可能为 null)
-                data.getEnhancedLRCData(); // 逐字歌词数据 (可能为 null)
                 data.getExtra(); // 其他数据 (可能为 null)
                 ...
             }
@@ -86,14 +83,12 @@ public class Test {
         });
 
         // 解除注册
-        SuperLyricTool.unregisterSuperLyric(context, iSuperLyric);
+        SuperLyricHelper.unregisterReceiver(receiver);
 
         // 其他 API 请参考源码注释
     }
 }
 ```
-
-- 几句简单代码即可实现！
 
 ---
 
@@ -104,36 +99,40 @@ public class Test {
 ```java
 public class Test {
     public void test() {
-        SuperLyricTool.isEnabled; // 是否被激活
+        SuperLyricHelper.isAvailable(); // 服务是否可用
+        
+        SuperLyricHelper.registerPublisher(packageName); // 务必设置，否则会崩溃
+        SuperLyricHelper.unregisterPublisher(packageName); // 可选，系统会自动解绑
+        SuperLyricHelper.isPublisherRegistered(); // 是否已注册为发行商
 
         // 请注意，非常建议您设置包名，这是判断当前播放应用的唯一途径！！
 
-        SuperLyricPush.onSuperLyric(
+        SuperLyricHelper.sendLyric(
             new SuperLyricData()
                 .setLyric() // 设置歌词 (必选)
                 .setDelay() // 设置当前歌词持续时间 (可选)
-                .setPackageName() // 设置软件包名 (必选)
-                .setSecondaryLyric() // 设置次要歌词 (必选)
-                .setSecondaryLyricDelay() // 设置次要歌词持续时间 (必选)
-                .setSecondaryLyricEnhancedLRCData() // 设置次要歌词逐字数据 (必选)
-                .setTranslation() // 当前歌词的翻译 (可选)
+                .setPackageName() // 设置软件包名 (必选) // 务必设置，否则不能鉴权
+                .setSecondaryLyric() // 设置次要歌词 (可选)
+                .setSecondaryLyricDelay() // 设置次要歌词持续时间 (可选)
+                .setSecondaryLyricWordData() // 设置次要歌词逐字数据 (可选)
+                .setTranslation() // 当前歌词的翻译 (可选，有翻译则建议设置)
                 .setTranslationDelay() // 当前歌词翻译的持续时间 (可选)
-                .setTranslationEnhancedLRCData() // 当前歌词翻译的逐字数据 (可选)
+                .setTranslationWordData() // 当前歌词翻译的逐字数据 (可选)
                 .setMediaMetadata() // 设置歌曲数据 (可选)
                 .setPlaybackState() // 设置播放状态 (可选)
                 .setExtra(new Bundle()) // 设置其他附加数据 (可选)
-                .setEnhancedLRCData(new SuperLyricData.EnhancedLRCData[]{
-                    new SuperLyricData.EnhancedLRCData("T", 100),
-                    new SuperLyricData.EnhancedLRCData("e", 100),
-                    new SuperLyricData.EnhancedLRCData("s", 100),
-                    new SuperLyricData.EnhancedLRCData("t", 100)
+                .setLyricWordData(new SuperLyricWord[]{
+                    new SuperLyricWord("T", 100, 200),
+                    new SuperLyricWord("e", 300, 400),
+                    new SuperLyricWord("s", 500, 600),
+                    new SuperLyricWord("t", 700, 800)
                 }) // 逐字歌词数据 (可选)
                 ...
         ); // 发布歌词
 
-        SuperLyricPush.onStop(
+        SuperLyricHelper.sendStop(
             new SuperLyricData()
-                .setPackageName() // 设置软件包名 (必选)
+                .setPackageName() // 设置软件包名 (必选) // 务必设置，否则不能鉴权
                 .setMediaMetadata() // 设置歌曲数据
                 .setPlaybackState() // 设置播放状态
                 .setExtra(new Bundle()) // 设置其他附加数据
@@ -144,8 +143,6 @@ public class Test {
     }
 }
 ```
-
-- 然后在歌词获取器内勾选您的音乐应用即可。
 
 ---
 

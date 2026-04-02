@@ -36,7 +36,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * 歌曲数据
+ * 歌词数据
  *
  * @author 焕晨HChen
  */

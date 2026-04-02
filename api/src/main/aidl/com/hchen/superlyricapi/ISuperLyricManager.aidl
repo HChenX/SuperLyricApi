@@ -56,5 +56,5 @@ interface ISuperLyricManager {
     boolean isReceiverRegistered(in ISuperLyricReceiver receiver);
 
     // 设置是否启用系统层播放状态监听功能
-    boolean setSystemPlayStateListenerEnabled(in String packageName, in boolean enabled);
+    void setSystemPlayStateListenerEnabled(in String packageName, in boolean enabled);
 }

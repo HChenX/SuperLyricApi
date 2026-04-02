@@ -33,7 +33,7 @@ import androidx.annotation.Nullable;
 import java.lang.reflect.Field;
 
 /**
- * API 工具
+ * API 助手
  *
  * @author 焕晨HChen
  */
@@ -144,17 +144,14 @@ public class SuperLyricHelper {
      * 是否启用系统层面的播放状态监听器
      * <p>
      * 如果禁用，则请自行发布 sendStop，MediaMetadata，PlaybackState 等数据
-     * <p>
-     * 返回值表示是否修改成功
      */
-    public static boolean setSystemPlayStateListenerEnabled(@NonNull Context context, boolean enabled) {
+    public static void setSystemPlayStateListenerEnabled(@NonNull Context context, boolean enabled) {
         try {
             ensureManager();
-            return mManager.setSystemPlayStateListenerEnabled(context.getPackageName(), enabled);
+            mManager.setSystemPlayStateListenerEnabled(context.getPackageName(), enabled);
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
-        return false;
     }
 
     // -------------------------- 为模块提供注册接收器的能力 -----------------------------------
@@ -163,7 +160,7 @@ public class SuperLyricHelper {
     /**
      * 注册 ISuperLyricReceiver 接收器
      */
-    public static void registerReceiver(@NonNull ISuperLyricReceiver.Stub receiver) {
+    public static void registerReceiver(@NonNull ISuperLyricReceiver receiver) {
         try {
             ensureManager();
             mManager.registerReceiver(receiver);
@@ -175,7 +172,7 @@ public class SuperLyricHelper {
     /**
      * 注销 ISuperLyricReceiver 接收器
      */
-    public static void unregisterReceiver(@NonNull ISuperLyricReceiver.Stub receiver) {
+    public static void unregisterReceiver(@NonNull ISuperLyricReceiver receiver) {
         try {
             ensureManager();
             mManager.unregisterReceiver(receiver);
@@ -187,7 +184,7 @@ public class SuperLyricHelper {
     /**
      * 接收器是否已被注册
      */
-    public static boolean isReceiverRegistered(@NonNull ISuperLyricReceiver.Stub receiver) {
+    public static boolean isReceiverRegistered(@NonNull ISuperLyricReceiver receiver) {
         try {
             ensureManager();
             return mManager.isReceiverRegistered(receiver);
