@@ -25,6 +25,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -38,7 +39,8 @@ import java.lang.reflect.Field;
  */
 @SuppressLint({"SoonBlockedPrivateApi", "DiscouragedPrivateApi", "PrivateApi"})
 public class SuperLyricHelper {
-    private volatile static ISuperLyricPublisher mPublisher;
+    private static final String TAG = "SuperLyricHelper";
+    private volatile static ISuperLyricManager mManager;
 
     private SuperLyricHelper() {
     }
@@ -48,8 +50,8 @@ public class SuperLyricHelper {
      */
     public static boolean isAvailable() {
         try {
-            ensurePublisher();
-            return mPublisher != null;
+            ensureManager();
+            return mManager != null;
         } catch (IllegalStateException ignore) {
             return false;
         }
@@ -62,6 +64,9 @@ public class SuperLyricHelper {
         return BuildConfig.API_VERSION;
     }
 
+    // -------------------------- 为第三方音乐软件提供的 API -----------------------------------
+    // ------------------------------- 模块内请勿使用 -----------------------------------------
+
     /**
      * 歌曲数据更改
      * <p>
@@ -69,10 +74,12 @@ public class SuperLyricHelper {
      */
     public static void sendLyric(@NonNull SuperLyricData data) {
         try {
-            ensurePublisher();
-            mPublisher.sendLyric(data);
+            ensureManager();
+            ensurePublisherRegistered(data.getPackageName());
+
+            mManager.sendLyric(data);
         } catch (RemoteException e) {
-            // 永远不会触发异常，因为来自系统框架的 binder 不应会死亡
+            Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
     }
 
@@ -83,59 +90,111 @@ public class SuperLyricHelper {
      */
     public static void sendStop(@NonNull SuperLyricData data) {
         try {
-            ensurePublisher();
-            mPublisher.sendStop(data);
+            ensureManager();
+            ensurePublisherRegistered(data.getPackageName());
+
+            mManager.sendStop(data);
         } catch (RemoteException e) {
-            // 永远不会触发异常，因为来自系统框架的 binder 不应会死亡
+            Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
     }
 
-    // -------------------------- 为第三方音乐软件提供的 API -----------------------------------
-    // ------------------------------- 模块内请勿使用 -----------------------------------------
+    /**
+     * 注册为发行商
+     * <p>
+     * 发布歌词之前请务必先注册为发行商，否则将会触发异常
+     */
+    public static void registerPublisher(@NonNull Context context) {
+        try {
+            ensureManager();
+            mManager.registerPublisher(context.getPackageName());
+        } catch (RemoteException e) {
+            Log.e(TAG, "SuperLyricManager RemoteException!!", e);
+        }
+    }
+
+    /**
+     * 解除发行商注册
+     * <p>
+     * 您可以自行调用此方法解除注册，也可交由系统自行管理，当您的应用死亡时会自动解除注册
+     */
+    public static void unregisterPublisher(@NonNull Context context) {
+        try {
+            ensureManager();
+            mManager.unregisterPublisher(context.getPackageName());
+        } catch (RemoteException e) {
+            Log.e(TAG, "SuperLyricManager RemoteException!!", e);
+        }
+    }
+
+    /**
+     * 是否已注册为发行商
+     */
+    public static boolean isPublisherRegistered(@NonNull Context context) {
+        try {
+            ensureManager();
+            return mManager.isPublisherRegistered(context.getPackageName());
+        } catch (RemoteException e) {
+            Log.e(TAG, "SuperLyricManager RemoteException!!", e);
+        }
+        return false;
+    }
 
     /**
      * 是否启用系统层面的播放状态监听器
      * <p>
      * 如果禁用，则请自行发布 sendStop，MediaMetadata，PlaybackState 等数据
+     * <p>
+     * 返回值表示是否修改成功
      */
-    public static void setSystemPlayStateListenerEnabled(@NonNull Context context, boolean enabled) {
+    public static boolean setSystemPlayStateListenerEnabled(@NonNull Context context, boolean enabled) {
         try {
-            ensurePublisher();
-            mPublisher.setSystemPlayStateListenerEnabled(context.getPackageName(), enabled);
-        } catch (RemoteException ignore) {
-            // 永远不会触发异常，因为来自系统框架的 binder 不应会死亡
+            ensureManager();
+            return mManager.setSystemPlayStateListenerEnabled(context.getPackageName(), enabled);
+        } catch (RemoteException e) {
+            Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
+        return false;
     }
 
     // -------------------------- 为模块提供注册接收器的能力 -----------------------------------
     // ---------------------------- 第三方音乐软件请勿使用 ------------------------------------
 
     /**
-     * 注册 ISuperLyricReceiver 回调
-     *
-     * @param receiver 回调
+     * 注册 ISuperLyricReceiver 接收器
      */
     public static void registerReceiver(@NonNull ISuperLyricReceiver.Stub receiver) {
         try {
-            ensurePublisher();
-            mPublisher.registerReceiver(receiver);
-        } catch (RemoteException ignore) {
-            // 永远不会触发异常，因为来自系统框架的 binder 不应会死亡
+            ensureManager();
+            mManager.registerReceiver(receiver);
+        } catch (RemoteException e) {
+            Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
     }
 
     /**
-     * 注销 ISuperLyricReceiver 回调
-     *
-     * @param receiver 回调
+     * 注销 ISuperLyricReceiver 接收器
      */
     public static void unregisterReceiver(@NonNull ISuperLyricReceiver.Stub receiver) {
         try {
-            ensurePublisher();
-            mPublisher.unregisterReceiver(receiver);
-        } catch (RemoteException ignore) {
-            // 永远不会触发异常，因为来自系统框架的 binder 不应会死亡
+            ensureManager();
+            mManager.unregisterReceiver(receiver);
+        } catch (RemoteException e) {
+            Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
+    }
+
+    /**
+     * 接收器是否已被注册
+     */
+    public static boolean isReceiverRegistered(@NonNull ISuperLyricReceiver.Stub receiver) {
+        try {
+            ensureManager();
+            return mManager.isReceiverRegistered(receiver);
+        } catch (RemoteException e) {
+            Log.e(TAG, "SuperLyricManager RemoteException!!", e);
+        }
+        return false;
     }
 
     // ---------------------------- 内部 API ------------------------------------
@@ -176,15 +235,29 @@ public class SuperLyricHelper {
         return null;
     }
 
-    private synchronized static void ensurePublisher() {
-        if (mPublisher != null) {
+    private synchronized static void ensureManager() {
+        if (mManager != null) {
             return;
         }
 
         IBinder iBinder = ServiceManager.getService("super_lyric");
-        mPublisher = ISuperLyricPublisher.Stub.asInterface(iBinder);
-        if (mPublisher == null) {
+        mManager = ISuperLyricManager.Stub.asInterface(iBinder);
+        if (mManager == null) {
             throw new IllegalStateException("Publisher not registered.");
+        }
+    }
+
+    private static void ensurePublisherRegistered(@NonNull String packageName) {
+        boolean isRegistered = false;
+        try {
+            ensureManager();
+            isRegistered = mManager.isPublisherRegistered(packageName);
+        } catch (RemoteException e) {
+            Log.e(TAG, "SuperLyricManager RemoteException!!", e);
+        }
+
+        if (!isRegistered) {
+            throw new IllegalStateException("Not yet registered as a publisher.");
         }
     }
 }

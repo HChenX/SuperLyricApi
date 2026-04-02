@@ -134,14 +134,6 @@ public class SuperLyricData implements Parcelable {
      * 我们将使用此 Key 存储逐字歌词数据
      */
     private static final String KEY_LYRIC_WORD_DATA = "key_lyric_word_data";
-    /**
-     * Extra 包中用于存储采集模式的 Key 值
-     * <p>
-     * 我们将使用此 Key 标识当前传递者的采集模式
-     * <p>
-     * 通常来说您并不需要手动设置，将由模块自动设置
-     */
-    private static final String KEY_ACQUISITION_MODE = "key_acquisition_mode";
 
     public SuperLyricData() {
     }
@@ -200,13 +192,6 @@ public class SuperLyricData implements Parcelable {
      */
     public boolean hasLyricWordData() {
         return extra != null && extra.containsKey(KEY_LYRIC_WORD_DATA);
-    }
-
-    /**
-     * 是否存在采集模式数据
-     */
-    public boolean hasAcquisitionMode() {
-        return extra != null && extra.containsKey(KEY_ACQUISITION_MODE);
     }
 
     /**
@@ -312,14 +297,6 @@ public class SuperLyricData implements Parcelable {
         return this;
     }
 
-    public SuperLyricData setAcquisitionMode(AcquisitionMode mode) {
-        if (Objects.nonNull(mode)) {
-            if (this.extra == null) this.extra = new Bundle();
-            this.extra.putString(KEY_ACQUISITION_MODE, mode.name());
-        }
-        return this;
-    }
-
     public SuperLyricData setPackageName(String packageName) {
         if (Objects.isNull(packageName)) packageName = "";
         this.packageName = packageName;
@@ -407,15 +384,6 @@ public class SuperLyricData implements Parcelable {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
             return extra.getParcelableArray(KEY_LYRIC_WORD_DATA, SuperLyricWord.class);
         else return (SuperLyricWord[]) extra.getParcelableArray(KEY_LYRIC_WORD_DATA);
-    }
-
-    @NonNull
-    public AcquisitionMode getAcquisitionMode() {
-        if (extra == null) return AcquisitionMode.HOOK_LYRIC;
-
-        String name = extra.getString(KEY_ACQUISITION_MODE);
-        return name == null ? AcquisitionMode.HOOK_LYRIC :
-            AcquisitionMode.valueOf(name);
     }
 
     @NonNull

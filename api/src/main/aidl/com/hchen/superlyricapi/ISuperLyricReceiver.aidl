@@ -30,9 +30,9 @@ interface ISuperLyricReceiver {
     // void basicTypes(int anInt, long aLong, boolean aBoolean, float aFloat,
     //          double aDouble, String aString);
 
-    // 发布数据时调用
+    // 接收数据时调用
     void onLyric(in SuperLyricData data);
 
-    // 歌曲被暂停时调用
+    // 暂停时调用
     void onStop(in SuperLyricData data);
 }

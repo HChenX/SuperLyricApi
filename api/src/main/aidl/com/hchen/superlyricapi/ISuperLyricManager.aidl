@@ -16,14 +16,14 @@
  *
  * Copyright (C) 2025–2026 HChenX
  */
-// ISuperLyricPublisher.aidl
+// ISuperLyricManager.aidl
 package com.hchen.superlyricapi;
 
 // Declare any non-default types here with import statements
 import com.hchen.superlyricapi.SuperLyricData;
 import com.hchen.superlyricapi.ISuperLyricReceiver;
 
-interface ISuperLyricPublisher {
+interface ISuperLyricManager {
     /**
      * Demonstrates some basic types that you can use as parameters
      * and return values in AIDL.
@@ -31,13 +31,30 @@ interface ISuperLyricPublisher {
     // void basicTypes(int anInt, long aLong, boolean aBoolean, float aFloat,
     //         double aDouble, String aString);
 
+    // 注册发行商
+    void registerPublisher(in String packageName);
+
+    // 解除发行商注册
+    void unregisterPublisher(in String packageName);
+
+    // 是否已注册为发行商
+    boolean isPublisherRegistered(in String packageName);
+
+    // 发布歌词
     void sendLyric(in SuperLyricData data);
 
+    // 发布暂停
     void sendStop(in SuperLyricData data);
 
+    // 注册接收器
     void registerReceiver(in ISuperLyricReceiver receiver);
 
+    // 解除注册接收器
     void unregisterReceiver(in ISuperLyricReceiver receiver);
 
-    void setSystemPlayStateListenerEnabled(in String packageName, in boolean enabled);
+    // 此接收器是否已经被注册
+    boolean isReceiverRegistered(in ISuperLyricReceiver receiver);
+
+    // 设置是否启用系统层播放状态监听功能
+    boolean setSystemPlayStateListenerEnabled(in String packageName, in boolean enabled);
 }
