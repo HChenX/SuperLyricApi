@@ -339,7 +339,7 @@ public class SuperLyricData implements Parcelable {
     }
 
     public SuperLyricData setMediaMetadata(MediaMetadata mediaMetadata) {
-        this.mediaMetadata = SuperLyricTool.removeMediaMetadataBitmap(mediaMetadata);
+        this.mediaMetadata = SuperLyricHelper.removeMediaMetadataBitmap(mediaMetadata);
         return this;
     }
 

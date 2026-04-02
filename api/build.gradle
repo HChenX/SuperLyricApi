@@ -3,8 +3,8 @@ plugins {
     id 'maven-publish'
 }
 
-def defVersionName = '2.7'
-def defVersionCode = 27
+def defVersionName = '3.0'
+def defVersionCode = 30
 
 android {
     namespace 'com.hchen.superlyricapi'
@@ -74,6 +74,7 @@ tasks.register('androidSourcesJar', Jar) {
 }
 
 dependencies {
+    compileOnly project(':hidden-api')
     implementation libs.annotation
 }
 

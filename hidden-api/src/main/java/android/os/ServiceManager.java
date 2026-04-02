@@ -16,23 +16,10 @@
  *
  * Copyright (C) 2025–2026 HChenX
  */
-// ISuperLyric.aidl
-package com.hchen.superlyricapi;
+package android.os;
 
-// Declare any non-default types here with import statements
-parcelable SuperLyricData;
-
-interface ISuperLyric {
-    /**
-     * Demonstrates some basic types that you can use as parameters
-     * and return values in AIDL.
-     */
-    // void basicTypes(int anInt, long aLong, boolean aBoolean, float aFloat,
-    //          double aDouble, String aString);
-
-    // 发布歌曲状态暂停
-    void onStop(in SuperLyricData data);
-
-    // 发布歌曲状态变化
-    void onSuperLyric(in SuperLyricData data);
+public class ServiceManager {
+    public static IBinder getService(String name) {
+        throw new RuntimeException("Stub!");
+    }
 }
