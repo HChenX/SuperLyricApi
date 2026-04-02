@@ -133,11 +133,11 @@ public class Test {
         SuperLyricHelper.sendStop(
             new SuperLyricData()
                 .setPackageName() // 设置软件包名 (必选) // 务必设置，否则不能鉴权
-                .setMediaMetadata() // 设置歌曲数据
-                .setPlaybackState() // 设置播放状态
-                .setExtra(new Bundle()) // 设置其他附加数据
+                .setMediaMetadata() // 设置歌曲数据 (可选)
+                .setPlaybackState() // 设置播放状态 (可选)
+                .setExtra(new Bundle()) // 设置其他附加数据 (可选)
                 ...
-        ); // 发布歌曲暂停
+        ); // 歌曲暂停
 
         // 其他 API 请参考源码注释
     }

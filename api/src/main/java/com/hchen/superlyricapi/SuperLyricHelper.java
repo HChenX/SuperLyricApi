@@ -240,7 +240,7 @@ public class SuperLyricHelper {
         IBinder iBinder = ServiceManager.getService("super_lyric");
         mManager = ISuperLyricManager.Stub.asInterface(iBinder);
         if (mManager == null) {
-            throw new IllegalStateException("Publisher not registered.");
+            throw new IllegalStateException("SuperLyricManager not attached.");
         }
     }
 
