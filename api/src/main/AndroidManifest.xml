@@ -1,2 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest></manifest>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.hchen.superlyricapi">
+
+    <application>
+        <meta-data
+            android:name="superlyricapi"
+            android:value="true" />
+        <meta-data
+            android:name="superlyricapi_version_name"
+            android:value="${superlyricapi_version_name}" />
+        <meta-data
+            android:name="superlyricapi_version_code"
+            android:value="${superlyricapi_version_code}" />
+    </application>
+</manifest>

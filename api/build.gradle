@@ -3,8 +3,8 @@ plugins {
     id 'maven-publish'
 }
 
-def defVersionName = '3.0'
-def defVersionCode = 30
+def defVersionName = '3.1'
+def defVersionCode = 31
 
 android {
     namespace 'com.hchen.superlyricapi'
@@ -21,6 +21,10 @@ android {
         }
 
         buildConfigField("int", "API_VERSION", "$defVersionCode")
+        manifestPlaceholders = [
+                superlyricapi_version_name: defVersionName,
+                superlyricapi_version_code: defVersionCode
+        ]
     }
 
     buildTypes {
