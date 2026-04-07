@@ -279,49 +279,6 @@ public class SuperLyricData implements Parcelable {
         return extra;
     }
 
-    /**
-     * 合并已有的 SuperLyricData 的数据
-     */
-    @NonNull
-    public SuperLyricData merge(SuperLyricData data) {
-        if (data == null) return this;
-
-        if (data.hasTitle())
-            this.title = data.title;
-
-        if (data.hasArtist())
-            this.artist = data.artist;
-
-        if (data.hasAlbum())
-            this.album = data.album;
-
-        if (data.hasLyric())
-            this.lyric = data.lyric;
-
-        if (data.hasSecondary())
-            this.secondary = data.secondary;
-
-        if (data.hasTranslation())
-            this.translation = data.translation;
-
-        if (data.hasMediaMetadata())
-            this.mediaMetadata = data.mediaMetadata;
-
-        if (data.hasPlaybackState())
-            this.playbackState = data.playbackState;
-
-        if (data.hasBase64Icon())
-            this.base64Icon = data.base64Icon;
-
-        if (data.extra != null) {
-            if (this.extra == null)
-                this.extra = new Bundle();
-            this.extra.putAll(data.extra);
-        }
-
-        return this;
-    }
-
     @NonNull
     @Override
     public String toString() {
