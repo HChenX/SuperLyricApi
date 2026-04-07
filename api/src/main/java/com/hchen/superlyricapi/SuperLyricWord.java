@@ -30,6 +30,8 @@ import java.util.Optional;
  * 逐字歌词数据信息
  * <p>
  * 我们将通过此数据包实现对逐字歌词的支持
+ *
+ * @author 焕晨HChen
  */
 public class SuperLyricWord implements Parcelable {
     /**
@@ -50,32 +52,30 @@ public class SuperLyricWord implements Parcelable {
      *
      * @deprecated
      */
-    @Deprecated(since = "2.3")
-    private int delay = 0;
+    @Deprecated(since = "2.7")
+    private long delay = 0L;
     /**
      * 当前单词的开始时间
      */
-    private int startTime = 0;
+    private long startTime = 0L;
     /**
      * 当前单词的结束时间
      */
-    private int endTime = 0;
+    private long endTime = 0L;
 
-    public SuperLyricWord(@NonNull String word, int startTime, int endTime) {
-        if (Objects.isNull(word)) word = "";
+    public SuperLyricWord(@NonNull String word, long startTime, long endTime) {
+        ensureWord(word);
         this.word = word;
         this.startTime = startTime;
         this.endTime = endTime;
     }
 
     /**
-     * 此构造函数已经弃用
-     * <p>
-     * 请使用 {@link SuperLyricWord#SuperLyricWord(String, int, int)}
+     * 请使用 {@link SuperLyricWord#SuperLyricWord(String, long, long)}
      */
-    @Deprecated(since = "2.6")
-    public SuperLyricWord(@NonNull String word, int delay) {
-        if (Objects.isNull(word)) word = "";
+    @Deprecated(since = "2.7")
+    public SuperLyricWord(@NonNull String word, long delay) {
+        ensureWord(word);
         this.word = word;
         this.delay = delay;
     }
@@ -85,20 +85,27 @@ public class SuperLyricWord implements Parcelable {
         return word;
     }
 
-    public int getDelay() {
-        if (delay != 0) return delay;
+    public long getDelay() {
+        if (delay != 0L) {
+            return delay;
+        }
+
         if (endTime > startTime) {
             return endTime - startTime;
         }
-        return 0;
+        return 0L;
     }
 
-    public int getStartTime() {
+    public long getStartTime() {
         return startTime;
     }
 
-    public int getEndTime() {
+    public long getEndTime() {
         return endTime;
+    }
+
+    private void ensureWord(String word) {
+        Objects.requireNonNull(word, "Word text must not be null.");
     }
 
     @NonNull
@@ -142,17 +149,17 @@ public class SuperLyricWord implements Parcelable {
 
     private SuperLyricWord(@NonNull Parcel in) {
         word = Optional.ofNullable(in.readString()).orElse("");
-        delay = in.readInt();
-        startTime = in.readInt();
-        endTime = in.readInt();
+        delay = in.readLong();
+        startTime = in.readLong();
+        endTime = in.readLong();
     }
 
     @Override
     public void writeToParcel(@NonNull Parcel dest, int flags) {
         dest.writeString(word);
-        dest.writeInt(delay);
-        dest.writeInt(startTime);
-        dest.writeInt(endTime);
+        dest.writeLong(delay);
+        dest.writeLong(startTime);
+        dest.writeLong(endTime);
     }
 
     @Override

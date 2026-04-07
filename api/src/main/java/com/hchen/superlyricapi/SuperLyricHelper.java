@@ -216,7 +216,7 @@ public class SuperLyricHelper {
     @Nullable
     static MediaMetadata removeMediaMetadataBitmap(@Nullable MediaMetadata mediaMetadata) {
         if (mMediaMetadataBundle == null || mediaMetadata == null) {
-            return null;
+            return mediaMetadata;
         }
 
         try {
@@ -229,18 +229,35 @@ public class SuperLyricHelper {
             return metadata;
         } catch (IllegalAccessException ignore) {
         }
-        return null;
+        return mediaMetadata;
     }
 
-    private synchronized static void ensureManager() {
+    private static void ensureManager() {
         if (mManager != null) {
             return;
         }
 
-        IBinder iBinder = ServiceManager.getService("super_lyric");
-        mManager = ISuperLyricManager.Stub.asInterface(iBinder);
-        if (mManager == null) {
-            throw new IllegalStateException("SuperLyricManager not attached.");
+        synchronized (SuperLyricHelper.class) {
+            if (mManager != null) {
+                return;
+            }
+
+            IBinder iBinder = ServiceManager.getService("super_lyric");
+            mManager = ISuperLyricManager.Stub.asInterface(iBinder);
+            if (mManager == null) {
+                throw new IllegalStateException("SuperLyricManager not attached.");
+            }
+
+            try {
+                iBinder.linkToDeath(new IBinder.DeathRecipient() {
+                    @Override
+                    public void binderDied() {
+                        mManager = null;
+                    }
+                }, 0);
+            } catch (RemoteException ignore) {
+                mManager = null;
+            }
         }
     }
 

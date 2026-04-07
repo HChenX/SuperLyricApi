@@ -18,13 +18,8 @@
  */
 package com.hchen.superlyricapi;
 
-import static android.media.MediaMetadata.METADATA_KEY_ALBUM;
-import static android.media.MediaMetadata.METADATA_KEY_ARTIST;
-import static android.media.MediaMetadata.METADATA_KEY_TITLE;
-
 import android.media.MediaMetadata;
 import android.media.session.PlaybackState;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -42,33 +37,38 @@ import java.util.Optional;
  */
 public class SuperLyricData implements Parcelable {
     /**
-     * 歌词
-     */
-    @NonNull
-    private String lyric = "";
-    /**
      * 音乐软件的包名
      * <p>
      * 请务必设置包名，这是判断当前播放应用的唯一途径
      */
-    @NonNull
     private String packageName = "";
+
     /**
-     * 音乐软件的图标
-     * <p>
-     * Note：用途有限，要求传递方提供 Base64 样式的 Icon 不太现实
-     * <p>
-     * 如果愿意您依然可以使用此方法传递 Base64 样式的 Icon
-     *
-     * @deprecated
+     * 歌曲的标题
      */
-    @NonNull
-    @Deprecated(since = "1.8")
-    private String base64Icon = "";
+    private String title = null;
     /**
-     * 当前歌词的持续时间 (毫秒)
+     * 歌曲的艺术家
      */
-    private int delay = 0;
+    private String artist = null;
+    /**
+     * 歌曲的专辑
+     */
+    private String album = null;
+
+    /**
+     * 歌词数据
+     */
+    private SuperLyricLine lyric = null;
+    /**
+     * 次要歌词数据
+     */
+    private SuperLyricLine secondary = null;
+    /**
+     * 歌词翻译数据
+     */
+    private SuperLyricLine translation = null;
+
     /**
      * 当前歌曲的 MediaMetadata 数据
      * <p>
@@ -78,120 +78,30 @@ public class SuperLyricData implements Parcelable {
      * <p>
      * 因此 API 主动抹去 MediaMetadata 中 Bitmap 数据以规避 Binder 破裂风险
      */
-    @Nullable
     private MediaMetadata mediaMetadata;
     /**
      * 当前的播放状态
      * <p>
      * 建议在播放状态暂停时设置
      */
-    @Nullable
     private PlaybackState playbackState;
+    /**
+     * 音乐软件的图标
+     * <p>
+     * Note：用途有限，要求传递方提供 Base64 样式的 Icon 不现实
+     * <p>
+     * 如果愿意您依然可以使用此方法传递 Base64 样式的 Icon
+     *
+     * @deprecated
+     */
+    @Deprecated(since = "1.8")
+    private String base64Icon = null;
     /**
      * 自定义附加数据
      */
-    @Nullable
     private Bundle extra;
-    /**
-     * Extra 包中用于存储次要歌词数据的 Key 值
-     * <p>
-     * 我们将使用此 Key 存储次要歌词数据
-     */
-    private static final String KEY_SECONDARY_LYRIC = "key_secondary_lyric";
-    /**
-     * Extra 包中用于存储次要歌词持续时间的 Key 值
-     * <p>
-     * 我们将使用此 Key 存储次要歌词的持续时间
-     */
-    private static final String KEY_SECONDARY_LYRIC_DELAY = "key_secondary_lyric_delay";
-    /**
-     * Extra 包中用于存储次要歌词逐字数据的 Key 值
-     * <p>
-     * 我们将使用此 Key 存储次要歌词的逐字数据
-     */
-    private static final String KEY_SECONDARY_LYRIC_WORD_DATA = "key_secondary_lyric_word_data";
-    /**
-     * Extra 包中用于存储歌词翻译数据的 Key 值
-     * <p>
-     * 我们将使用此 Key 存储歌词翻译数据
-     */
-    private static final String KEY_TRANSLATION = "key_translation";
-    /**
-     * Extra 包中用于存储歌词翻译持续时间的 Key 值
-     * <p>
-     * 我们将使用此 Key 存储歌词翻译的持续时间
-     */
-    private static final String KEY_TRANSLATION_DELAY = "key_translation_delay";
-    /**
-     * Extra 包中用于储存歌词翻译逐字数据的 key 值
-     * <p>
-     * 我们将使用此 Key 存储歌词翻译的逐字数据
-     */
-    private static final String KEY_TRANSLATION_WORD_DATA = "key_translation_word_data";
-    /**
-     * Extra 包中用于存储逐字歌词数据的 Key 值
-     * <p>
-     * 我们将使用此 Key 存储逐字歌词数据
-     */
-    private static final String KEY_LYRIC_WORD_DATA = "key_lyric_word_data";
 
     public SuperLyricData() {
-    }
-
-    /**
-     * 是否存在歌词数据
-     */
-    public boolean hasLyric() {
-        return !lyric.isEmpty();
-    }
-
-    /**
-     * 是否存在次要歌词数据
-     */
-    public boolean hasSecondaryLyric() {
-        return extra != null && extra.containsKey(KEY_SECONDARY_LYRIC);
-    }
-
-    /**
-     * 是否存在次要歌词持续时间数据
-     */
-    public boolean hasSecondaryLyricDelay() {
-        return extra != null && extra.containsKey(KEY_SECONDARY_LYRIC_DELAY);
-    }
-
-    /**
-     * 是否存在次要歌词逐字数据
-     */
-    public boolean hasSecondaryLyricWordData() {
-        return extra != null && extra.containsKey(KEY_SECONDARY_LYRIC_WORD_DATA);
-    }
-
-    /**
-     * 是否存在翻译数据
-     */
-    public boolean hasTranslation() {
-        return extra != null && extra.containsKey(KEY_TRANSLATION);
-    }
-
-    /**
-     * 是否存在翻译持续时间数据
-     */
-    public boolean hasTranslationDelay() {
-        return extra != null && extra.containsKey(KEY_TRANSLATION_DELAY);
-    }
-
-    /**
-     * 是否存在翻译逐字数据
-     */
-    public boolean hasTranslationWordData() {
-        return extra != null && extra.containsKey(KEY_TRANSLATION_WORD_DATA);
-    }
-
-    /**
-     * 是否存在逐字歌词数据
-     */
-    public boolean hasLyricWordData() {
-        return extra != null && extra.containsKey(KEY_LYRIC_WORD_DATA);
     }
 
     /**
@@ -202,20 +112,45 @@ public class SuperLyricData implements Parcelable {
     }
 
     /**
-     * 是否存在 Delay 数据
+     * 是否存在歌曲标题数据
      */
-    public boolean hasDelay() {
-        return delay > 0;
+    public boolean hasTitle() {
+        return Objects.nonNull(title);
     }
 
     /**
-     * 是否存在 Base64 Icon 数据
-     *
-     * @deprecated
+     * 是否存在歌曲艺术家数据
      */
-    @Deprecated(since = "1.8")
-    public boolean hasBase64Icon() {
-        return !base64Icon.isEmpty();
+    public boolean hasArtist() {
+        return Objects.nonNull(artist);
+    }
+
+    /**
+     * 是否存在歌曲专辑数据
+     */
+    public boolean hasAlbum() {
+        return Objects.nonNull(album);
+    }
+
+    /**
+     * 是否存在歌词数据
+     */
+    public boolean hasLyric() {
+        return Objects.nonNull(lyric);
+    }
+
+    /**
+     * 是否存在次要歌词数据
+     */
+    public boolean hasSecondary() {
+        return Objects.nonNull(secondary);
+    }
+
+    /**
+     * 是否存在歌词翻译数据
+     */
+    public boolean hasTranslation() {
+        return Objects.nonNull(translation);
     }
 
     /**
@@ -233,85 +168,55 @@ public class SuperLyricData implements Parcelable {
     }
 
     /**
+     * 是否存在 Base64 Icon 数据
+     *
+     * @deprecated
+     */
+    @Deprecated(since = "1.8")
+    public boolean hasBase64Icon() {
+        return Objects.nonNull(base64Icon);
+    }
+
+    /**
      * 是否存在附加数据
      */
     public boolean hasExtra() {
         return Objects.nonNull(extra);
     }
 
-    public SuperLyricData setLyric(String lyric) {
-        if (Objects.isNull(lyric)) lyric = "";
-        this.lyric = lyric;
-        return this;
-    }
-
-    public SuperLyricData setSecondaryLyric(String secondaryLyric) {
-        if (Objects.nonNull(secondaryLyric)) {
-            if (this.extra == null) this.extra = new Bundle();
-            this.extra.putString(KEY_SECONDARY_LYRIC, secondaryLyric);
-        }
-        return this;
-    }
-
-    public SuperLyricData setSecondaryLyricDelay(int delay) {
-        if (this.extra == null) this.extra = new Bundle();
-        this.extra.putInt(KEY_SECONDARY_LYRIC_DELAY, delay);
-        return this;
-    }
-
-    public SuperLyricData setSecondaryLyricWordData(SuperLyricWord[] data) {
-        if (Objects.nonNull(data)) {
-            if (this.extra == null) this.extra = new Bundle();
-            this.extra.putParcelableArray(KEY_SECONDARY_LYRIC_WORD_DATA, data);
-        }
-        return this;
-    }
-
-    public SuperLyricData setTranslation(String translation) {
-        if (Objects.nonNull(translation)) {
-            if (this.extra == null) this.extra = new Bundle();
-            this.extra.putString(KEY_TRANSLATION, translation);
-        }
-        return this;
-    }
-
-    public SuperLyricData setTranslationDelay(int delay) {
-        if (this.extra == null) this.extra = new Bundle();
-        this.extra.putInt(KEY_TRANSLATION_DELAY, delay);
-        return this;
-    }
-
-    public SuperLyricData setTranslationWordData(SuperLyricWord[] data) {
-        if (Objects.nonNull(data)) {
-            if (this.extra == null) this.extra = new Bundle();
-            this.extra.putParcelableArray(KEY_TRANSLATION_WORD_DATA, data);
-        }
-        return this;
-    }
-
-    public SuperLyricData setLyricWordData(SuperLyricWord[] data) {
-        if (Objects.nonNull(data)) {
-            if (this.extra == null) this.extra = new Bundle();
-            this.extra.putParcelableArray(KEY_LYRIC_WORD_DATA, data);
-        }
-        return this;
-    }
-
     public SuperLyricData setPackageName(String packageName) {
-        if (Objects.isNull(packageName)) packageName = "";
+        Objects.requireNonNull(packageName, "Package name must not be null.");
         this.packageName = packageName;
         return this;
     }
 
-    @Deprecated(since = "1.8")
-    public SuperLyricData setBase64Icon(String base64Icon) {
-        if (Objects.isNull(base64Icon)) base64Icon = "";
-        this.base64Icon = base64Icon;
+    public SuperLyricData setTitle(String title) {
+        this.title = title;
         return this;
     }
 
-    public SuperLyricData setDelay(int delay) {
-        this.delay = delay;
+    public SuperLyricData setArtist(String artist) {
+        this.artist = artist;
+        return this;
+    }
+
+    public SuperLyricData setAlbum(String album) {
+        this.album = album;
+        return this;
+    }
+
+    public SuperLyricData setLyric(SuperLyricLine lyric) {
+        this.lyric = lyric;
+        return this;
+    }
+
+    public SuperLyricData setSecondary(SuperLyricLine secondary) {
+        this.secondary = secondary;
+        return this;
+    }
+
+    public SuperLyricData setTranslation(SuperLyricLine translation) {
+        this.translation = translation;
         return this;
     }
 
@@ -325,9 +230,18 @@ public class SuperLyricData implements Parcelable {
         return this;
     }
 
+    @Deprecated(since = "1.8")
+    public SuperLyricData setBase64Icon(String base64Icon) {
+        this.base64Icon = base64Icon;
+        return this;
+    }
+
     public SuperLyricData setExtra(Bundle extra) {
-        if (this.extra == null) this.extra = extra;
-        else {
+        if (this.extra == null) {
+            if (extra != null) {
+                this.extra = new Bundle(extra);
+            }
+        } else {
             if (extra != null) {
                 this.extra.putAll(extra);
             }
@@ -336,69 +250,38 @@ public class SuperLyricData implements Parcelable {
     }
 
     @NonNull
-    public String getLyric() {
-        return lyric;
-    }
-
-    @NonNull
-    public String getSecondaryLyric() {
-        return extra != null ? Optional.ofNullable(extra.getString(KEY_SECONDARY_LYRIC)).orElse("") : "";
-    }
-
-    public int getSecondaryLyricDelay() {
-        return extra != null ? extra.getInt(KEY_SECONDARY_LYRIC_DELAY) : 0;
-    }
-
-    @Nullable
-    public SuperLyricWord[] getSecondaryLyricWordData() {
-        if (extra == null) return null;
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            return extra.getParcelableArray(KEY_SECONDARY_LYRIC_WORD_DATA, SuperLyricWord.class);
-        else
-            return (SuperLyricWord[]) extra.getParcelableArray(KEY_SECONDARY_LYRIC_WORD_DATA);
-    }
-
-    @NonNull
-    public String getTranslation() {
-        return extra != null ? Optional.ofNullable(extra.getString(KEY_TRANSLATION)).orElse("") : "";
-    }
-
-    public int getTranslationDelay() {
-        return extra != null ? extra.getInt(KEY_TRANSLATION_DELAY) : 0;
-    }
-
-    @Nullable
-    public SuperLyricWord[] getTranslationWordData() {
-        if (extra == null) return null;
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            return extra.getParcelableArray(KEY_TRANSLATION_WORD_DATA, SuperLyricWord.class);
-        else return (SuperLyricWord[]) extra.getParcelableArray(KEY_TRANSLATION_WORD_DATA);
-    }
-
-    @Nullable
-    public SuperLyricWord[] getLyricWordData() {
-        if (extra == null) return null;
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            return extra.getParcelableArray(KEY_LYRIC_WORD_DATA, SuperLyricWord.class);
-        else return (SuperLyricWord[]) extra.getParcelableArray(KEY_LYRIC_WORD_DATA);
-    }
-
-    @NonNull
     public String getPackageName() {
         return packageName;
     }
 
-    @NonNull
-    @Deprecated(since = "1.8")
-    public String getBase64Icon() {
-        return base64Icon;
+    @Nullable
+    public String getTitle() {
+        return title;
     }
 
-    public int getDelay() {
-        return delay;
+    @Nullable
+    public String getArtist() {
+        return artist;
+    }
+
+    @Nullable
+    public String getAlbum() {
+        return album;
+    }
+
+    @Nullable
+    public SuperLyricLine getLyric() {
+        return lyric;
+    }
+
+    @Nullable
+    public SuperLyricLine getSecondary() {
+        return secondary;
+    }
+
+    @Nullable
+    public SuperLyricLine getTranslation() {
+        return translation;
     }
 
     @Nullable
@@ -412,46 +295,14 @@ public class SuperLyricData implements Parcelable {
     }
 
     @Nullable
+    @Deprecated(since = "1.8")
+    public String getBase64Icon() {
+        return base64Icon;
+    }
+
+    @Nullable
     public Bundle getExtra() {
         return extra;
-    }
-
-    /**
-     * 获取歌曲的标题，数据来自 MediaMetadata
-     * <br/>
-     * 请注意，蓝牙歌词状态可能使用此参数传递歌词
-     */
-    @NonNull
-    public String getTitle() {
-        if (mediaMetadata == null) return "Unknown";
-
-        return Optional.ofNullable(
-            mediaMetadata.getString(METADATA_KEY_TITLE)
-        ).orElse("Unknown");
-    }
-
-    /**
-     * 获取歌曲的艺术家，数据来自 MediaMetadata
-     */
-    @NonNull
-    public String getArtist() {
-        if (mediaMetadata == null) return "Unknown";
-
-        return Optional.ofNullable(
-            mediaMetadata.getString(METADATA_KEY_ARTIST)
-        ).orElse("Unknown");
-    }
-
-    /**
-     * 获取歌曲的专辑，数据来自 MediaMetadata
-     */
-    @NonNull
-    public String getAlbum() {
-        if (mediaMetadata == null) return "Unknown";
-
-        return Optional.ofNullable(
-            mediaMetadata.getString(METADATA_KEY_ALBUM)
-        ).orElse("Unknown");
     }
 
     /**
@@ -461,14 +312,26 @@ public class SuperLyricData implements Parcelable {
     public SuperLyricData merge(SuperLyricData data) {
         if (data == null) return this;
 
-        if (data.hasLyric())
-            this.lyric = data.lyric;
-
         if (data.hasPackageName())
             this.packageName = data.packageName;
 
-        if (data.hasDelay())
-            this.delay = data.delay;
+        if (data.hasTitle())
+            this.title = data.title;
+
+        if (data.hasArtist())
+            this.artist = data.artist;
+
+        if (data.hasAlbum())
+            this.album = data.album;
+
+        if (data.hasLyric())
+            this.lyric = data.lyric;
+
+        if (data.hasSecondary())
+            this.secondary = data.secondary;
+
+        if (data.hasTranslation())
+            this.translation = data.translation;
 
         if (data.hasMediaMetadata())
             this.mediaMetadata = data.mediaMetadata;
@@ -476,100 +339,100 @@ public class SuperLyricData implements Parcelable {
         if (data.hasPlaybackState())
             this.playbackState = data.playbackState;
 
+        if (data.hasBase64Icon())
+            this.base64Icon = data.base64Icon;
+
         if (data.extra != null) {
             if (this.extra == null)
                 this.extra = new Bundle();
             this.extra.putAll(data.extra);
         }
 
-        if (data.hasBase64Icon())
-            this.base64Icon = data.base64Icon;
-
         return this;
-    }
-
-    /**
-     * 方便手动封装包裹
-     */
-    @NonNull
-    public Parcel marshall() {
-        Parcel parcel = Parcel.obtain();
-        writeToParcel(parcel, 0);
-        return parcel;
-    }
-
-    /**
-     * 解包封装并实例化
-     */
-    @NonNull
-    public static SuperLyricData unmarshall(@NonNull Parcel parcel) {
-        parcel.setDataPosition(0);
-        return new SuperLyricData(parcel);
     }
 
     @NonNull
     @Override
     public String toString() {
         return "SuperLyricData{" +
-            "lyric='" + lyric + '\'' +
-            ", packageName='" + packageName + '\'' +
-            ", base64Icon='" + base64Icon + '\'' +
-            ", delay=" + delay +
+            "packageName='" + packageName + '\'' +
+            ", title='" + title + '\'' +
+            ", artist='" + artist + '\'' +
+            ", album='" + album + '\'' +
+            ", lyric=" + lyric +
+            ", secondary=" + secondary +
+            ", translation=" + translation +
             ", mediaMetadata=" + mediaMetadata +
             ", playbackState=" + playbackState +
+            ", base64Icon='" + base64Icon + '\'' +
             ", extra=" + extra +
             '}';
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (!(o instanceof SuperLyricData data)) return false;
-        return delay == data.delay &&
-            Objects.equals(lyric, data.lyric) &&
-            Objects.equals(packageName, data.packageName) &&
-            Objects.equals(base64Icon, data.base64Icon) &&
-            Objects.equals(mediaMetadata, data.mediaMetadata) &&
-            Objects.equals(playbackState, data.playbackState) &&
-            Objects.equals(extra, data.extra);
+    public boolean equals(Object object) {
+        if (!(object instanceof SuperLyricData that)) return false;
+        return Objects.equals(packageName, that.packageName) &&
+            Objects.equals(title, that.title) &&
+            Objects.equals(artist, that.artist) &&
+            Objects.equals(album, that.album) &&
+            Objects.equals(lyric, that.lyric) &&
+            Objects.equals(secondary, that.secondary) &&
+            Objects.equals(translation, that.translation) &&
+            Objects.equals(mediaMetadata, that.mediaMetadata) &&
+            Objects.equals(playbackState, that.playbackState) &&
+            Objects.equals(base64Icon, that.base64Icon) &&
+            Objects.equals(extra, that.extra);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(lyric, packageName, base64Icon, delay, mediaMetadata, playbackState, extra);
+        return Objects.hash(
+            packageName,
+            title, artist, album,
+            lyric, secondary, translation,
+            mediaMetadata, playbackState, base64Icon, extra
+        );
     }
 
     public static final Creator<SuperLyricData> CREATOR = new Creator<SuperLyricData>() {
-        @NonNull
         @Override
         public SuperLyricData createFromParcel(Parcel in) {
             return new SuperLyricData(in);
         }
 
-        @NonNull
         @Override
         public SuperLyricData[] newArray(int size) {
             return new SuperLyricData[size];
         }
     };
 
-    private SuperLyricData(@NonNull Parcel in) {
-        lyric = Optional.ofNullable(in.readString()).orElse("");
+    private SuperLyricData(Parcel in) {
         packageName = Optional.ofNullable(in.readString()).orElse("");
-        base64Icon = Optional.ofNullable(in.readString()).orElse("");
-        delay = in.readInt();
+        title = in.readString();
+        artist = in.readString();
+        album = in.readString();
+        lyric = in.readParcelable(SuperLyricLine.class.getClassLoader());
+        secondary = in.readParcelable(SuperLyricLine.class.getClassLoader());
+        translation = in.readParcelable(SuperLyricLine.class.getClassLoader());
         mediaMetadata = in.readParcelable(MediaMetadata.class.getClassLoader());
         playbackState = in.readParcelable(PlaybackState.class.getClassLoader());
-        extra = in.readBundle(getClass().getClassLoader());
+        base64Icon = in.readString();
+        extra = in.readBundle(SuperLyricData.class.getClassLoader());
     }
 
     @Override
-    public void writeToParcel(@NonNull Parcel dest, int flags) {
-        dest.writeString(lyric);
+    public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(packageName);
-        dest.writeString(base64Icon);
-        dest.writeInt(delay);
+        dest.writeString(title);
+        dest.writeString(artist);
+        dest.writeString(album);
+        dest.writeParcelable(lyric, flags);
+        dest.writeParcelable(secondary, flags);
+        dest.writeParcelable(translation, flags);
         dest.writeParcelable(mediaMetadata, flags);
         dest.writeParcelable(playbackState, flags);
+        dest.writeString(base64Icon);
         dest.writeBundle(extra);
     }
 

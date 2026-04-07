@@ -1,53 +1,34 @@
-<div align="center">
-<h1>SuperLyricApi</h1>
+/*
+ * This file is part of SuperLyricApi.
+ *
+ * SuperLyricApi is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the License, or
+ * (at your option) any later version.
+ *
+ * SuperLyricApi is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with SuperLyricApi. If not, see <https://www.gnu.org/licenses/lgpl-2.1>.
+ *
+ * Copyright (C) 2025–2026 HChenX
+ */
+package com.hchen.superlyricapi;
 
-![stars](https://img.shields.io/github/stars/HChenX/SuperLyricApi?style=flat)
-![Github repo size](https://img.shields.io/github/repo-size/HChenX/SuperLyricApi)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/HChenX/SuperLyricApi)](https://github.com/HChenX/SuperLyricApi/releases)
-[![GitHub Release Date](https://img.shields.io/github/release-date/HChenX/SuperLyricApi)](https://github.com/HChenX/SuperLyricApi/releases)
-![last commit](https://img.shields.io/github/last-commit/HChenX/SuperLyricApi?style=flat)
-![language](https://img.shields.io/badge/language-java-purple)
-![language](https://img.shields.io/badge/language-aidl-purple)
+import android.content.Context;
+import android.media.MediaMetadata;
+import android.media.session.PlaybackState;
+import android.os.Bundle;
+import android.os.RemoteException;
 
-<p><b><a href="README-en.md">English</a> | <a href="README.md">简体中文</a></b></p>
-<p>Super Lyric Api</p>
-</div>
-
----
-
-## ✨ API 介绍
-
-- 本 API 提供了简洁的接口供模块获取歌词或第三方音乐软件发布歌词使用
-
----
-
-## ✨ 导入依赖
-
-- 添加依赖：
-
-```groovy
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        mavenCentral()
-        maven { url 'https://jitpack.io' } // 添加 JitPack 库
-    }
-}
-
-dependencies {
-    implementation 'com.github.HChenX:SuperLyricApi:3.2' // 引入依赖
-}
-```
-
-- 同步项目后即可使用本 API。
-
----
-
-## 🛠 针对模块使用
-
-- 使用方法：
-
-```java
+/**
+ * 示例
+ *
+ * @author 焕晨HChen
+ */
 public class SuperLyricDemo {
     public static void ModuleDemo() {
         ISuperLyricReceiver.Stub receiver;
@@ -110,17 +91,7 @@ public class SuperLyricDemo {
         SuperLyricHelper.isReceiverRegistered(receiver); // 是否已经注册
         SuperLyricHelper.unregisterReceiver(receiver); // 解除注册
     }
-}
-```
 
----
-
-## 🔧 针对音乐软件
-
-- 使用方法：
-
-```java
-public class SuperLyricDemo {
     public static void MusicAppDemo(Context context) {
         SuperLyricHelper.isAvailable(); // 服务是否可用
 
@@ -179,23 +150,3 @@ public class SuperLyricDemo {
         );
     }
 }
-```
-
----
-
-## 🌟 混淆配置
-
-```text
-// 不建议混淆本 API
--keep class com.hchen.superlyricapi.* {*;}
-```
-
----
-
-## 📢 歌词获取器
-
-- [SuperLyric](https://github.com/HChenX/SuperLyric)
-
-## 🎉结尾
-
-💖 **感谢您的支持，Enjoy your day!** 🚀
