@@ -19,7 +19,6 @@
 package com.hchen.superlyricapi;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.media.MediaMetadata;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -75,7 +74,7 @@ public class SuperLyricHelper {
     public static void sendLyric(@NonNull SuperLyricData data) {
         try {
             ensureManager();
-            ensurePublisherRegistered(data.getPackageName());
+            ensurePublisherRegistered();
 
             mManager.sendLyric(data);
         } catch (RemoteException e) {
@@ -91,7 +90,7 @@ public class SuperLyricHelper {
     public static void sendStop(@NonNull SuperLyricData data) {
         try {
             ensureManager();
-            ensurePublisherRegistered(data.getPackageName());
+            ensurePublisherRegistered();
 
             mManager.sendStop(data);
         } catch (RemoteException e) {
@@ -104,10 +103,10 @@ public class SuperLyricHelper {
      * <p>
      * 发布歌词之前请务必先注册为发行商，否则将会触发异常
      */
-    public static void registerPublisher(@NonNull Context context) {
+    public static void registerPublisher() {
         try {
             ensureManager();
-            mManager.registerPublisher(context.getPackageName());
+            mManager.registerPublisher();
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
@@ -118,10 +117,10 @@ public class SuperLyricHelper {
      * <p>
      * 您可以自行调用此方法解除注册，也可交由系统自行管理，当您的应用死亡时会自动解除注册
      */
-    public static void unregisterPublisher(@NonNull Context context) {
+    public static void unregisterPublisher() {
         try {
             ensureManager();
-            mManager.unregisterPublisher(context.getPackageName());
+            mManager.unregisterPublisher();
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
@@ -130,10 +129,10 @@ public class SuperLyricHelper {
     /**
      * 是否已注册为发行商
      */
-    public static boolean isPublisherRegistered(@NonNull Context context) {
+    public static boolean isPublisherRegistered() {
         try {
             ensureManager();
-            return mManager.isPublisherRegistered(context.getPackageName());
+            return mManager.isPublisherRegistered();
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
@@ -145,10 +144,10 @@ public class SuperLyricHelper {
      * <p>
      * 如果禁用，则请自行发布 sendStop，MediaMetadata，PlaybackState 等数据
      */
-    public static void setSystemPlayStateListenerEnabled(@NonNull Context context, boolean enabled) {
+    public static void setSystemPlayStateListenerEnabled(boolean enabled) {
         try {
             ensureManager();
-            mManager.setSystemPlayStateListenerEnabled(context.getPackageName(), enabled);
+            mManager.setSystemPlayStateListenerEnabled(enabled);
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
@@ -261,11 +260,11 @@ public class SuperLyricHelper {
         }
     }
 
-    private static void ensurePublisherRegistered(@NonNull String packageName) {
+    private static void ensurePublisherRegistered() {
         boolean isRegistered = false;
         try {
             ensureManager();
-            isRegistered = mManager.isPublisherRegistered(packageName);
+            isRegistered = mManager.isPublisherRegistered();
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }

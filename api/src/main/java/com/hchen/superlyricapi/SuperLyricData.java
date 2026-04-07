@@ -28,7 +28,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * 歌词数据
@@ -36,13 +35,6 @@ import java.util.Optional;
  * @author 焕晨HChen
  */
 public class SuperLyricData implements Parcelable {
-    /**
-     * 音乐软件的包名
-     * <p>
-     * 请务必设置包名，这是判断当前播放应用的唯一途径
-     */
-    private String packageName = "";
-
     /**
      * 歌曲的标题
      */
@@ -78,13 +70,13 @@ public class SuperLyricData implements Parcelable {
      * <p>
      * 因此 API 主动抹去 MediaMetadata 中 Bitmap 数据以规避 Binder 破裂风险
      */
-    private MediaMetadata mediaMetadata;
+    private MediaMetadata mediaMetadata = null;
     /**
      * 当前的播放状态
      * <p>
      * 建议在播放状态暂停时设置
      */
-    private PlaybackState playbackState;
+    private PlaybackState playbackState = null;
     /**
      * 音乐软件的图标
      * <p>
@@ -99,16 +91,9 @@ public class SuperLyricData implements Parcelable {
     /**
      * 自定义附加数据
      */
-    private Bundle extra;
+    private Bundle extra = null;
 
     public SuperLyricData() {
-    }
-
-    /**
-     * 是否存在包名数据
-     */
-    public boolean hasPackageName() {
-        return !packageName.isEmpty();
     }
 
     /**
@@ -184,12 +169,6 @@ public class SuperLyricData implements Parcelable {
         return Objects.nonNull(extra);
     }
 
-    public SuperLyricData setPackageName(String packageName) {
-        Objects.requireNonNull(packageName, "Package name must not be null.");
-        this.packageName = packageName;
-        return this;
-    }
-
     public SuperLyricData setTitle(String title) {
         this.title = title;
         return this;
@@ -247,11 +226,6 @@ public class SuperLyricData implements Parcelable {
             }
         }
         return this;
-    }
-
-    @NonNull
-    public String getPackageName() {
-        return packageName;
     }
 
     @Nullable
@@ -312,9 +286,6 @@ public class SuperLyricData implements Parcelable {
     public SuperLyricData merge(SuperLyricData data) {
         if (data == null) return this;
 
-        if (data.hasPackageName())
-            this.packageName = data.packageName;
-
         if (data.hasTitle())
             this.title = data.title;
 
@@ -355,8 +326,7 @@ public class SuperLyricData implements Parcelable {
     @Override
     public String toString() {
         return "SuperLyricData{" +
-            "packageName='" + packageName + '\'' +
-            ", title='" + title + '\'' +
+            "title='" + title + '\'' +
             ", artist='" + artist + '\'' +
             ", album='" + album + '\'' +
             ", lyric=" + lyric +
@@ -372,8 +342,7 @@ public class SuperLyricData implements Parcelable {
     @Override
     public boolean equals(Object object) {
         if (!(object instanceof SuperLyricData that)) return false;
-        return Objects.equals(packageName, that.packageName) &&
-            Objects.equals(title, that.title) &&
+        return Objects.equals(title, that.title) &&
             Objects.equals(artist, that.artist) &&
             Objects.equals(album, that.album) &&
             Objects.equals(lyric, that.lyric) &&
@@ -388,7 +357,6 @@ public class SuperLyricData implements Parcelable {
     @Override
     public int hashCode() {
         return Objects.hash(
-            packageName,
             title, artist, album,
             lyric, secondary, translation,
             mediaMetadata, playbackState, base64Icon, extra
@@ -408,7 +376,6 @@ public class SuperLyricData implements Parcelable {
     };
 
     private SuperLyricData(Parcel in) {
-        packageName = Optional.ofNullable(in.readString()).orElse("");
         title = in.readString();
         artist = in.readString();
         album = in.readString();
@@ -423,7 +390,6 @@ public class SuperLyricData implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(packageName);
         dest.writeString(title);
         dest.writeString(artist);
         dest.writeString(album);

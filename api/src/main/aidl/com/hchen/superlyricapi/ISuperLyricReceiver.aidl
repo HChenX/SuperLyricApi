@@ -31,8 +31,8 @@ interface ISuperLyricReceiver {
     //          double aDouble, String aString);
 
     // 接收数据时调用
-    void onLyric(in SuperLyricData data);
+    void onLyric(in String publisher, in SuperLyricData data);
 
     // 暂停时调用
-    void onStop(in SuperLyricData data);
+    void onStop(in String publisher, in SuperLyricData data);
 }

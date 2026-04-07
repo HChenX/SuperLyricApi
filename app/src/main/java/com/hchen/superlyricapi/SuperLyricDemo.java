@@ -18,7 +18,6 @@
  */
 package com.hchen.superlyricapi;
 
-import android.content.Context;
 import android.media.MediaMetadata;
 import android.media.session.PlaybackState;
 import android.os.Bundle;
@@ -35,11 +34,8 @@ public class SuperLyricDemo {
 
         SuperLyricHelper.registerReceiver(receiver = new ISuperLyricReceiver.Stub() {
             @Override
-            public void onLyric(SuperLyricData data) throws RemoteException {
+            public void onLyric(String publisher, SuperLyricData data) throws RemoteException {
                 // 发送方发送数据时会调用此方法
-
-                String packageName = data.getPackageName(); // 发送方包名
-
                 // 以下全部数据需要调用方主动传递，否则可能为 null
 
                 String title = data.getTitle();
@@ -78,10 +74,8 @@ public class SuperLyricDemo {
             }
 
             @Override
-            public void onStop(SuperLyricData data) throws RemoteException {
+            public void onStop(String publisher, SuperLyricData data) throws RemoteException {
                 // 暂停歌曲或发送方死亡时会调用此方法
-
-                String packageName = data.getPackageName(); // 发送方包名
                 if (data.hasPlaybackState()) {
                     PlaybackState state = data.getPlaybackState(); // PlaybackState 数据
                 }
@@ -92,16 +86,16 @@ public class SuperLyricDemo {
         SuperLyricHelper.unregisterReceiver(receiver); // 解除注册
     }
 
-    public static void MusicAppDemo(Context context) {
+    public static void MusicAppDemo() {
         SuperLyricHelper.isAvailable(); // 服务是否可用
+        SuperLyricHelper.getApiVersion(); // API 版本
 
-        SuperLyricHelper.registerPublisher(context); // 注册本应用为发布者，必须调用，否则会抛错
-        SuperLyricHelper.unregisterPublisher(context); // 主动注销发布者身份，可自行调用，也可交给系统自行控制
-        SuperLyricHelper.isPublisherRegistered(context); // 是否已经注册为发布者
+        SuperLyricHelper.registerPublisher(); // 注册本应用为发布者，必须调用，否则会抛错
+        SuperLyricHelper.unregisterPublisher(); // 主动注销发布者身份，可自行调用，也可交给系统自行控制
+        SuperLyricHelper.isPublisherRegistered(); // 是否已经注册为发布者
 
         SuperLyricHelper.sendLyric(
             new SuperLyricData()
-                .setPackageName("com.hchen.demo") // 请务必设置为本软件的包名，否则会抛错
                 .setTitle("") // 设置歌曲标题
                 .setArtist("") // 设置歌曲艺术家
                 // 设置当前歌词
@@ -145,7 +139,6 @@ public class SuperLyricDemo {
 
         SuperLyricHelper.sendStop(
             new SuperLyricData()
-                .setPackageName("com.hchen.demo") // 请务必设置为本软件的包名，否则会抛错
                 .setPlaybackState(null) // PlaybackState 数据
         );
     }

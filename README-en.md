@@ -65,11 +65,8 @@ public class SuperLyricDemo {
 
         SuperLyricHelper.registerReceiver(receiver = new ISuperLyricReceiver.Stub() {
             @Override
-            public void onLyric(SuperLyricData data) throws RemoteException {
+            public void onLyric(String publisher, SuperLyricData data) throws RemoteException {
                 // Called each time a publisher sends a new lyric line.
-
-                String packageName = data.getPackageName(); // Sender's package name (always present)
-
                 // All fields below are optional — check before use.
                 String title = data.getTitle();
                 String artist = data.getArtist();
@@ -113,16 +110,15 @@ public class SuperLyricDemo {
             }
 
             @Override
-            public void onStop(SuperLyricData data) throws RemoteException {
+            public void onStop(String publisher, SuperLyricData data) throws RemoteException {
                 // Called when the publisher pauses playback or its process dies.
-                String packageName = data.getPackageName();
                 if (data.hasPlaybackState()) {
                     PlaybackState state = data.getPlaybackState();
                 }
             }
         });
 
-// Query registration status or unregister when done
+        // Query registration status or unregister when done
         boolean registered = SuperLyricHelper.isReceiverRegistered(receiver);
         SuperLyricHelper.unregisterReceiver(receiver);
     }
@@ -147,18 +143,17 @@ Call this once when your app starts (e.g., in `onCreate`). Publishing will throw
 `IllegalStateException` if this step is skipped.
 
 ```java
-public static void MusicAppDemo(Context context) {
-    SuperLyricHelper.registerPublisher(context);
+public static void MusicAppDemo() {
+    SuperLyricHelper.registerPublisher();
 }
 ```
 
 ### 3. Send lyric data
 
 ```java
-public static void MusicAppDemo(Context context) {
+public static void MusicAppDemo() {
     SuperLyricHelper.sendLyric(
         new SuperLyricData()
-            .setPackageName(context.getPackageName()) // Required — must match your app's package name
             .setTitle("Song Title")
             .setArtist("Artist Name")
             .setLyric(
@@ -186,10 +181,9 @@ public static void MusicAppDemo(Context context) {
 Call this when playback pauses or stops.
 
 ```java
-public static void MusicAppDemo(Context context) {
+public static void MusicAppDemo() {
     SuperLyricHelper.sendStop(
         new SuperLyricData()
-            .setPackageName(context.getPackageName())
             .setPlaybackState(playbackState) // Optional
     );
 }
@@ -203,8 +197,8 @@ unregister explicitly:
 ```java
 import javax.naming.Context;
 
-public static void MusicAppDemo(Context context) {
-    SuperLyricHelper.unregisterPublisher(context);
+public static void MusicAppDemo() {
+    SuperLyricHelper.unregisterPublisher();
 }
 ```
 
@@ -215,8 +209,8 @@ stop/metadata/playback-state changes on your behalf. If you prefer to manage the
 it:
 
 ```java
-public static void MusicAppDemo(Context context) {
-    SuperLyricHelper.setSystemPlayStateListenerEnabled(context, false);
+public static void MusicAppDemo() {
+    SuperLyricHelper.setSystemPlayStateListenerEnabled(false);
     // Then call sendStop(), setMediaMetadata(), setPlaybackState() yourself as needed.
 }
 ```

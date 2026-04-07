@@ -32,13 +32,13 @@ interface ISuperLyricManager {
     //         double aDouble, String aString);
 
     // 注册发行商
-    void registerPublisher(in String packageName);
+    void registerPublisher();
 
     // 解除发行商注册
-    void unregisterPublisher(in String packageName);
+    void unregisterPublisher();
 
     // 是否已注册为发行商
-    boolean isPublisherRegistered(in String packageName);
+    boolean isPublisherRegistered();
 
     // 发布歌词
     void sendLyric(in SuperLyricData data);
@@ -56,5 +56,5 @@ interface ISuperLyricManager {
     boolean isReceiverRegistered(in ISuperLyricReceiver receiver);
 
     // 设置是否启用系统层播放状态监听功能
-    void setSystemPlayStateListenerEnabled(in String packageName, in boolean enabled);
+    void setSystemPlayStateListenerEnabled(in boolean enabled);
 }
