@@ -119,6 +119,7 @@ public class SuperLyricLine implements Parcelable {
         return endTime;
     }
 
+    @Deprecated(since = "3.2")
     public long getDelay() {
         if (delay != 0L) {
             return delay;
@@ -142,7 +143,7 @@ public class SuperLyricLine implements Parcelable {
             ", words=" + Arrays.toString(words) +
             ", startTime=" + startTime +
             ", endTime=" + endTime +
-            ", delay=" + delay +
+            ", delay=" + getDelay() +
             '}';
     }
 

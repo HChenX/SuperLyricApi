@@ -21,7 +21,7 @@ SuperLyricApi provides a clean, minimal interface that allows:
 
 - **Music apps** to publish real-time lyric data (text, word-level timing, translation, playback
   state, etc.) to a system-level service.
-- **Xposed modules** to receive that data and display lyrics anywhere in the system UI.
+- **Xposed modules** can receive these lyric data from system services.
 
 Communication is handled entirely over Binder via AIDL, making it fast, process-safe, and compatible
 with Xposed-based module architectures.
@@ -44,7 +44,7 @@ dependencyResolutionManagement {
 
 // build.gradle (app module)
 dependencies {
-    implementation 'com.github.HChenX:SuperLyricApi:3.2'
+    implementation 'com.github.HChenX:SuperLyricApi:3.3'
 }
 ```
 
@@ -57,71 +57,69 @@ Sync your project and the API is ready to use.
 Register an `ISuperLyricReceiver` to receive lyric events from any publishing music app.
 
 ```java
-import java.rmi.RemoteException;
+public static void ModuleDemo() {
+    ISuperLyricReceiver.Stub receiver;
+    SuperLyricHelper.registerReceiver(receiver = new ISuperLyricReceiver.Stub() {
+        @Override
+        public void onLyric(String publisher, SuperLyricData data) throws RemoteException {
+            // Called each time a publisher sends a new lyric line
+            // All fields below are optional — check before use
+            String title = data.getTitle();
+            String artist = data.getArtist();
+            String album = data.getAlbum();
 
-public class SuperLyricDemo {
-    public static void ModuleDemo() {
-        ISuperLyricReceiver.Stub receiver;
+            if (data.hasLyric()) {
+                SuperLyricLine lyric = data.getLyric();
+                if (lyric != null) {
+                    String text = lyric.getText();
+                    long startTime = lyric.getStartTime(); // ms
+                    long endTime = lyric.getEndTime(); // ms
+                    long delay = lyric.getDelay(); // duration = endTime - startTime
 
-        SuperLyricHelper.registerReceiver(receiver = new ISuperLyricReceiver.Stub() {
-            @Override
-            public void onLyric(String publisher, SuperLyricData data) throws RemoteException {
-                // Called each time a publisher sends a new lyric line.
-                // All fields below are optional — check before use.
-                String title = data.getTitle();
-                String artist = data.getArtist();
-                String album = data.getAlbum();
-
-                if (data.hasLyric()) {
-                    SuperLyricLine lyric = data.getLyric();
-                    if (lyric != null) {
-                        String text = lyric.getText();
-                        long startTime = lyric.getStartTime(); // ms
-                        long endTime = lyric.getEndTime();   // ms
-                        long delay = lyric.getDelay();     // duration = endTime - startTime
-
-                        // Word-level (karaoke) data — may be null
-                        SuperLyricWord[] words = lyric.getWords();
-                        if (words != null) {
-                            for (SuperLyricWord word : words) {
-                                String wordText = word.getWord();
-                                long wordStartTime = word.getStartTime();
-                                long wordEndTime = word.getEndTime();
-                            }
+                    // Word-level (karaoke) data — may be null
+                    SuperLyricWord[] words = lyric.getWords();
+                    if (words != null) {
+                        for (SuperLyricWord word : words) {
+                            String wordText = word.getWord();
+                            long wordStartTime = word.getStartTime();
+                            long wordEndTime = word.getEndTime();
                         }
                     }
                 }
-
-                if (data.hasSecondary()) {
-                    SuperLyricLine secondary = data.getSecondary();
-                }
-                if (data.hasTranslation()) {
-                    SuperLyricLine translation = data.getTranslation();
-                }
-                if (data.hasMediaMetadata()) {
-                    MediaMetadata metadata = data.getMediaMetadata();
-                }
-                if (data.hasPlaybackState()) {
-                    PlaybackState state = data.getPlaybackState();
-                }
-                if (data.hasExtra()) {
-                    Bundle extra = data.getExtra();
-                }
             }
 
-            @Override
-            public void onStop(String publisher, SuperLyricData data) throws RemoteException {
-                // Called when the publisher pauses playback or its process dies.
-                if (data.hasPlaybackState()) {
-                    PlaybackState state = data.getPlaybackState();
-                }
+            if (data.hasSecondary()) {
+                SuperLyricLine secondary = data.getSecondary();
             }
-        });
+            if (data.hasTranslation()) {
+                SuperLyricLine translation = data.getTranslation();
+            }
 
-        // Query registration status or unregister when done
-        boolean registered = SuperLyricHelper.isReceiverRegistered(receiver);
-        SuperLyricHelper.unregisterReceiver(receiver);
-    }
+            if (data.hasMediaMetadata()) {
+                MediaMetadata metadata = data.getMediaMetadata();
+            }
+            if (data.hasPlaybackState()) {
+                PlaybackState state = data.getPlaybackState();
+            }
+            if (data.hasExtra()) {
+                Bundle extra = data.getExtra();
+            }
+
+            data.getBase64Icon(); // Base64 Icon
+        }
+
+        @Override
+        public void onStop(String publisher, SuperLyricData data) throws RemoteException {
+            // Called when the publisher pauses playback or its process dies
+            if (data.hasPlaybackState()) {
+                PlaybackState state = data.getPlaybackState();
+            }
+        }
+    });
+
+    // Query registration status or unregister when done
+    boolean registered = SuperLyricHelper.isReceiverRegistered(receiver);
+    SuperLyricHelper.unregisterReceiver(receiver);
 }
 ```
 
@@ -158,20 +156,20 @@ public static void MusicAppDemo() {
             .setArtist("Artist Name")
             .setLyric(
                 new SuperLyricLine(
-                    "Hello world",                    // Line text
-                    new SuperLyricWord[]{              // Optional word-level timing
+                    "Hello world", // Line text
+                    new SuperLyricWord[]{ // Optional word-level timing
                         new SuperLyricWord("Hello", 0, 400),
                         new SuperLyricWord("world", 400, 900),
                     },
-                    0,    // Line start time (ms)
-                    900   // Line end time (ms)
+                    0, // Line start time (ms)
+                    900 // Line end time (ms)
                 )
             )
-            .setSecondary(new SuperLyricLine("Secondary line", 0, 900))     // Optional
+            .setSecondary(new SuperLyricLine("Secondary line", 0, 900)) // Optional
             .setTranslation(new SuperLyricLine("Translation line", 0, 900)) // Optional
-            .setMediaMetadata(mediaMetadata)  // Optional; Bitmap fields are stripped automatically
-            .setPlaybackState(playbackState)  // Optional
-            .setExtra(extraBundle)            // Optional custom data
+            .setMediaMetadata(mediaMetadata) // Optional; Bitmap fields are stripped automatically
+            .setPlaybackState(playbackState) // Optional
+            .setExtra(extraBundle) // Optional custom data
     );
 }
 ```
@@ -195,8 +193,6 @@ The system automatically cleans up publisher registration when your app process 
 unregister explicitly:
 
 ```java
-import javax.naming.Context;
-
 public static void MusicAppDemo() {
     SuperLyricHelper.unregisterPublisher();
 }
@@ -205,13 +201,12 @@ public static void MusicAppDemo() {
 ### 6. System playback state listener
 
 By default, SuperLyric listens to the system's `MediaSession` events to automatically handle
-stop/metadata/playback-state changes on your behalf. If you prefer to manage these manually, disable
-it:
+playback-state change. If you prefer to manage these manually, disable it:
 
 ```java
 public static void MusicAppDemo() {
     SuperLyricHelper.setSystemPlayStateListenerEnabled(false);
-    // Then call sendStop(), setMediaMetadata(), setPlaybackState() yourself as needed.
+    // Then call sendStop(), setPlaybackState() yourself as needed.
 }
 ```
 
@@ -223,7 +218,6 @@ public static void MusicAppDemo() {
 
 | Method                            | Description                                                                                          |
 |-----------------------------------|------------------------------------------------------------------------------------------------------|
-| `setPackageName(String)`          | **Required.** Your app's package name.                                                               |
 | `setTitle(String)`                | Song title.                                                                                          |
 | `setArtist(String)`               | Artist name.                                                                                         |
 | `setAlbum(String)`                | Album name.                                                                                          |
@@ -233,7 +227,6 @@ public static void MusicAppDemo() {
 | `setMediaMetadata(MediaMetadata)` | Song metadata. **Bitmap fields are stripped automatically** to avoid Binder transaction size limits. |
 | `setPlaybackState(PlaybackState)` | Current playback state.                                                                              |
 | `setExtra(Bundle)`                | Custom key-value data. Merges with any existing extras.                                              |
-| `merge(SuperLyricData)`           | Non-destructively merges another `SuperLyricData` into this one (only non-null fields are applied).  |
 
 Each field has a corresponding `hasXxx()` guard method (`hasLyric()`, `hasTitle()`, etc.) — always
 check before accessing optional fields.
@@ -248,13 +241,12 @@ Represents a single line of lyrics.
 | `SuperLyricLine(text, startTime, endTime)`          | Text with line timing.       |
 | `SuperLyricLine(text, words[], startTime, endTime)` | Text with word-level timing. |
 
-| Method           | Returns                                     |
-|------------------|---------------------------------------------|
-| `getText()`      | Line text (`@NonNull`)                      |
-| `getStartTime()` | Line start time in ms                       |
-| `getEndTime()`   | Line end time in ms                         |
-| `getDelay()`     | Line duration in ms (`endTime - startTime`) |
-| `getWords()`     | Array of `SuperLyricWord`, or `null`        |
+| Method           | Returns                              |
+|------------------|--------------------------------------|
+| `getText()`      | Line text (`@NonNull`)               |
+| `getStartTime()` | Line start time in ms                |
+| `getEndTime()`   | Line end time in ms                  |
+| `getWords()`     | Array of `SuperLyricWord`, or `null` |
 
 ### `SuperLyricWord`
 
@@ -269,7 +261,6 @@ Represents a single word within a lyric line, used for karaoke-style word highli
 | `getWord()`      | Word text (`@NonNull`) |
 | `getStartTime()` | Word start time in ms  |
 | `getEndTime()`   | Word end time in ms    |
-| `getDelay()`     | Word duration in ms    |
 
 ---
 
@@ -278,15 +269,14 @@ Represents a single word within a lyric line, used for karaoke-style word highli
 It is strongly recommended to keep all API classes unobfuscated:
 
 ```proguard
--keep class com.hchen.superlyricapi.** { *; }
+-keep class com.hchen.superlyricapi.* {*;}
 ```
 
 ---
 
-## 📢 Related Projects
+## 📢 Lyrics Finder
 
-- [SuperLyric](https://github.com/HChenX/SuperLyric) — the Xposed module that consumes this API to
-  display lyrics in the system UI.
+- [SuperLyric](https://github.com/HChenX/SuperLyric)
 
 ---
 

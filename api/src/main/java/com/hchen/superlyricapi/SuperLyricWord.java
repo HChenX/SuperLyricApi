@@ -85,6 +85,7 @@ public class SuperLyricWord implements Parcelable {
         return word;
     }
 
+    @Deprecated(since = "2.7")
     public long getDelay() {
         if (delay != 0L) {
             return delay;

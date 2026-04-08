@@ -31,43 +31,50 @@ import android.os.RemoteException;
 public class SuperLyricDemo {
     public static void ModuleDemo() {
         ISuperLyricReceiver.Stub receiver;
-
         SuperLyricHelper.registerReceiver(receiver = new ISuperLyricReceiver.Stub() {
             @Override
             public void onLyric(String publisher, SuperLyricData data) throws RemoteException {
-                // 发送方发送数据时会调用此方法
-                // 以下全部数据需要调用方主动传递，否则可能为 null
-
+                // 每次发布者发送新的歌词行时调用
+                // 以下所有字段均为可选 — 使用前请检查
                 String title = data.getTitle();
                 String artist = data.getArtist();
                 String album = data.getAlbum();
 
                 if (data.hasLyric()) {
-                    SuperLyricLine lyric = data.getLyric(); // 歌词数据
+                    SuperLyricLine lyric = data.getLyric();
                     if (lyric != null) {
                         String text = lyric.getText();
-                        long startTime = lyric.getStartTime();
-                        long endTime = lyric.getEndTime();
-                        long delay = lyric.getDelay();
+                        long startTime = lyric.getStartTime(); // 毫秒
+                        long endTime = lyric.getEndTime(); // 毫秒
+                        long delay = lyric.getDelay(); // 持续时间 = endTime - startTime
+
+                        // 逐字（卡拉OK）数据 — 可能为 null
+                        SuperLyricWord[] words = lyric.getWords();
+                        if (words != null) {
+                            for (SuperLyricWord word : words) {
+                                String wordText = word.getWord();
+                                long wordStartTime = word.getStartTime();
+                                long wordEndTime = word.getEndTime();
+                            }
+                        }
                     }
                 }
 
                 if (data.hasSecondary()) {
-                    SuperLyricLine secondary = data.getSecondary(); // 次要歌词，用法同上
+                    SuperLyricLine secondary = data.getSecondary();
                 }
                 if (data.hasTranslation()) {
-                    SuperLyricLine translation = data.getTranslation(); // 翻译，用法同上
+                    SuperLyricLine translation = data.getTranslation();
                 }
 
                 if (data.hasMediaMetadata()) {
-                    MediaMetadata metadata = data.getMediaMetadata(); // MediaMetadata 数据
+                    MediaMetadata metadata = data.getMediaMetadata();
                 }
                 if (data.hasPlaybackState()) {
-                    PlaybackState state = data.getPlaybackState(); // PlaybackState 数据
+                    PlaybackState state = data.getPlaybackState();
                 }
-
                 if (data.hasExtra()) {
-                    Bundle extra = data.getExtra(); // 附加数据
+                    Bundle extra = data.getExtra();
                 }
 
                 data.getBase64Icon(); // Base64 Icon
@@ -75,15 +82,16 @@ public class SuperLyricDemo {
 
             @Override
             public void onStop(String publisher, SuperLyricData data) throws RemoteException {
-                // 暂停歌曲或发送方死亡时会调用此方法
+                // 当发布者暂停播放或其进程终止时调用
                 if (data.hasPlaybackState()) {
-                    PlaybackState state = data.getPlaybackState(); // PlaybackState 数据
+                    PlaybackState state = data.getPlaybackState();
                 }
             }
         });
 
-        SuperLyricHelper.isReceiverRegistered(receiver); // 是否已经注册
-        SuperLyricHelper.unregisterReceiver(receiver); // 解除注册
+        // 查询注册状态或完成后取消注册
+        boolean registered = SuperLyricHelper.isReceiverRegistered(receiver);
+        SuperLyricHelper.unregisterReceiver(receiver);
     }
 
     public static void MusicAppDemo() {
@@ -96,50 +104,32 @@ public class SuperLyricDemo {
 
         SuperLyricHelper.sendLyric(
             new SuperLyricData()
-                .setTitle("") // 设置歌曲标题
-                .setArtist("") // 设置歌曲艺术家
-                // 设置当前歌词
+                .setTitle("歌曲标题")
+                .setArtist("艺术家名称")
                 .setLyric(
                     new SuperLyricLine(
-                        "lyric",
-                        // 设置逐字数据
-                        new SuperLyricWord[]{
-                            new SuperLyricWord(
-                                "l",
-                                100,
-                                200
-                            ),
-                            // 省略
+                        "你好世界", // 歌词文本
+                        new SuperLyricWord[]{ // 可选的逐字数据
+                            new SuperLyricWord("你好", 0, 400),
+                            new SuperLyricWord("世界", 400, 900),
                         },
-                        100,
-                        600
+                        0, // 行开始时间（毫秒）
+                        900 // 行结束时间（毫秒）
                     )
                 )
-                // 设置当前次要歌词
-                .setSecondary(
-                    new SuperLyricLine(
-                        "secondary",
-                        100,
-                        600
-                    )
-                )
-                // 设置当前翻译
-                .setTranslation(
-                    new SuperLyricLine(
-                        "translation",
-                        100,
-                        600
-                    )
-                )
-                .setMediaMetadata(null) // MediaMetadata 数据
-                .setPlaybackState(null) // PlaybackState 数据
-                .setExtra(null) // 设置附加数据
-                .setBase64Icon("") // Base64 Icon
+                .setSecondary(new SuperLyricLine("副歌词行", 0, 900)) // 可选
+                .setTranslation(new SuperLyricLine("翻译行", 0, 900)) // 可选
+                .setMediaMetadata(null) // 可选；Bitmap 字段会被自动剥离
+                .setPlaybackState(null) // 可选
+                .setExtra(null) // 可选
         );
 
         SuperLyricHelper.sendStop(
             new SuperLyricData()
                 .setPlaybackState(null) // PlaybackState 数据
         );
+
+        SuperLyricHelper.setSystemPlayStateListenerEnabled(false);
+        // 然后根据需要自行调用 sendStop()、setPlaybackState()。
     }
 }
