@@ -19,10 +19,10 @@
 
 SuperLyricApi 提供了简洁、轻量的接口，使得：
 
-- **音乐应用**可以将实时歌词数据（文本、逐字时间、翻译、播放状态等）发布到系统级服务。
-- **Xposed 模块**则可以从系统服务中接收这些歌词数据。
+- **音乐应用** 可以将实时歌词数据（文本、逐字时间、翻译、播放状态等）发布到系统级服务。
+- **Xposed 模块** 可以从系统服务中接收这些歌词数据。
 
-所有通信均通过 AIDL 基于 Binder 完成，快速、进程安全，并与基于 Xposed 的模块架构完美兼容。
+所有通信均通过 AIDL 基于 Binder 完成，快速且进程安全，并与基于 Xposed 的模块架构完美兼容。
 
 ---
 
@@ -92,7 +92,7 @@ public static void ModuleDemo() {
             if (data.hasTranslation()) {
                 SuperLyricLine translation = data.getTranslation();
             }
-            
+
             if (data.hasMediaMetadata()) {
                 MediaMetadata metadata = data.getMediaMetadata();
             }
@@ -102,7 +102,7 @@ public static void ModuleDemo() {
             if (data.hasExtra()) {
                 Bundle extra = data.getExtra();
             }
-            
+
             data.getBase64Icon(); // Base64 Icon
         }
 
@@ -230,26 +230,26 @@ public static void MusicAppDemo() {
 
 表示单行歌词。
 
-| 构造函数                                                | 描述       |
-|-----------------------------------------------------|----------|
-| `SuperLyricLine(text)`                              | 仅文本。     |
-| `SuperLyricLine(text, startTime, endTime)`          | 文本及行级时间。 |
-| `SuperLyricLine(text, words[], startTime, endTime)` | 文本及逐字时间。 |
+| 构造函数                                                | 描述         |
+|-----------------------------------------------------|------------|
+| `SuperLyricLine(text)`                              | 仅文本。       |
+| `SuperLyricLine(text, startTime, endTime)`          | 文本及行时间。    |
+| `SuperLyricLine(text, words[], startTime, endTime)` | 文本及逐字及行时间。 |
 
-| 方法               | 返回值                              |
-|------------------|----------------------------------|
-| `getText()`      | 行文本（`@NonNull`）                  |
-| `getStartTime()` | 行开始时间（毫秒）                        |
-| `getEndTime()`   | 行结束时间（毫秒）                        |
-| `getWords()`     | `SuperLyricWord` 数组，可能为 `null`   |
+| 方法               | 返回值                            |
+|------------------|--------------------------------|
+| `getText()`      | 行文本（`@NonNull`）                |
+| `getStartTime()` | 行开始时间（毫秒）                      |
+| `getEndTime()`   | 行结束时间（毫秒）                      |
+| `getWords()`     | `SuperLyricWord` 数组，可能为 `null` |
 
 ### `SuperLyricWord`
 
 表示歌词行内的单个单词，用于卡拉 OK 风格的逐字高亮。
 
-| 构造函数                                       | 描述       |
-|--------------------------------------------|----------|
-| `SuperLyricWord(word, startTime, endTime)` | 带有时间的单词。 |
+| 构造函数                                       | 描述  |
+|--------------------------------------------|-----|
+| `SuperLyricWord(word, startTime, endTime)` | 逐字。 |
 
 | 方法               | 返回值              |
 |------------------|------------------|
