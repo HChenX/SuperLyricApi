@@ -78,7 +78,7 @@ tasks.register('androidSourcesJar', Jar) {
 }
 
 dependencies {
-    compileOnly project(':hidden-api')
+    implementation project(':hidden-api')
     implementation libs.annotation
 }
 
