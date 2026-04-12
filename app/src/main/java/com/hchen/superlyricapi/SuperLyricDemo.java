@@ -18,8 +18,6 @@
  */
 package com.hchen.superlyricapi;
 
-import android.media.MediaMetadata;
-import android.media.session.PlaybackState;
 import android.os.Bundle;
 import android.os.RemoteException;
 
@@ -67,12 +65,6 @@ public class SuperLyricDemo {
                     SuperLyricLine translation = data.getTranslation();
                 }
 
-                if (data.hasMediaMetadata()) {
-                    MediaMetadata metadata = data.getMediaMetadata();
-                }
-                if (data.hasPlaybackState()) {
-                    PlaybackState state = data.getPlaybackState();
-                }
                 if (data.hasExtra()) {
                     Bundle extra = data.getExtra();
                 }
@@ -83,9 +75,6 @@ public class SuperLyricDemo {
             @Override
             public void onStop(String publisher, SuperLyricData data) throws RemoteException {
                 // 当发布者暂停播放或其进程终止时调用
-                if (data.hasPlaybackState()) {
-                    PlaybackState state = data.getPlaybackState();
-                }
             }
         });
 
@@ -119,14 +108,11 @@ public class SuperLyricDemo {
                 )
                 .setSecondary(new SuperLyricLine("副歌词行", 0, 900)) // 可选
                 .setTranslation(new SuperLyricLine("翻译行", 0, 900)) // 可选
-                .setMediaMetadata(null) // 可选；Bitmap 字段会被自动剥离
-                .setPlaybackState(null) // 可选
                 .setExtra(null) // 可选
         );
 
         SuperLyricHelper.sendStop(
             new SuperLyricData()
-                .setPlaybackState(null) // PlaybackState 数据
         );
 
         SuperLyricHelper.setSystemPlayStateListenerEnabled(false);

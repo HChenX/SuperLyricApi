@@ -42,7 +42,7 @@ dependencyResolutionManagement {
 
 // build.gradle (app module)
 dependencies {
-    implementation 'com.github.HChenX:SuperLyricApi:3.3'
+    implementation 'com.github.HChenX:SuperLyricApi:3.4'
 }
 ```
 
@@ -93,12 +93,6 @@ public static void ModuleDemo() {
                 SuperLyricLine translation = data.getTranslation();
             }
 
-            if (data.hasMediaMetadata()) {
-                MediaMetadata metadata = data.getMediaMetadata();
-            }
-            if (data.hasPlaybackState()) {
-                PlaybackState state = data.getPlaybackState();
-            }
             if (data.hasExtra()) {
                 Bundle extra = data.getExtra();
             }
@@ -109,9 +103,6 @@ public static void ModuleDemo() {
         @Override
         public void onStop(String publisher, SuperLyricData data) throws RemoteException {
             // 当发布者暂停播放或其进程终止时调用
-            if (data.hasPlaybackState()) {
-                PlaybackState state = data.getPlaybackState();
-            }
         }
     });
 
@@ -165,8 +156,6 @@ public static void MusicAppDemo() {
             )
             .setSecondary(new SuperLyricLine("副歌词行", 0, 900)) // 可选
             .setTranslation(new SuperLyricLine("翻译行", 0, 900)) // 可选
-            .setMediaMetadata(mediaMetadata) // 可选；Bitmap 字段会被自动剥离
-            .setPlaybackState(playbackState) // 可选
             .setExtra(extraBundle) // 可选
     );
 }
@@ -180,7 +169,6 @@ public static void MusicAppDemo() {
 public static void MusicAppDemo() {
     SuperLyricHelper.sendStop(
         new SuperLyricData()
-            .setPlaybackState(playbackState) // PlaybackState 数据
     );
 }
 ```
@@ -212,17 +200,15 @@ public static void MusicAppDemo() {
 
 ### `SuperLyricData`
 
-| 方法                                | 描述                                             |
-|-----------------------------------|------------------------------------------------|
-| `setTitle(String)`                | 歌曲标题。                                          |
-| `setArtist(String)`               | 艺术家名称。                                         |
-| `setAlbum(String)`                | 专辑名称。                                          |
-| `setLyric(SuperLyricLine)`        | 主歌词行。                                          |
-| `setSecondary(SuperLyricLine)`    | 副歌词行（例如罗马音）。                                   |
-| `setTranslation(SuperLyricLine)`  | 主歌词的翻译。                                        |
-| `setMediaMetadata(MediaMetadata)` | 歌曲元数据。**Bitmap 字段会被自动剥离**，以避免超出 Binder 事务大小限制。 |
-| `setPlaybackState(PlaybackState)` | 当前播放状态。                                        |
-| `setExtra(Bundle)`                | 自定义键值对数据。会与任何已有的 extra 合并。                     |
+| 方法                               | 描述                         |
+|----------------------------------|----------------------------|
+| `setTitle(String)`               | 歌曲标题。                      |
+| `setArtist(String)`              | 艺术家名称。                     |
+| `setAlbum(String)`               | 专辑名称。                      |
+| `setLyric(SuperLyricLine)`       | 主歌词行。                      |
+| `setSecondary(SuperLyricLine)`   | 副歌词行（例如罗马音）。               |
+| `setTranslation(SuperLyricLine)` | 主歌词的翻译。                    |
+| `setExtra(Bundle)`               | 自定义键值对数据。会与任何已有的 extra 合并。 |
 
 每个字段都有对应的 `hasXxx()` 检查方法（如 `hasLyric()`、`hasTitle()` 等）—— 访问可选字段前请始终进行检查。
 

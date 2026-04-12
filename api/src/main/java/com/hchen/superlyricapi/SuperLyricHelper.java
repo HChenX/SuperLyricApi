@@ -19,17 +19,12 @@
 package com.hchen.superlyricapi;
 
 import android.annotation.SuppressLint;
-import android.media.MediaMetadata;
-import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
-import java.lang.reflect.Field;
 
 /**
  * API 助手
@@ -67,9 +62,7 @@ public class SuperLyricHelper {
     // ------------------------------- 模块内请勿使用 -----------------------------------------
 
     /**
-     * 歌曲数据更改
-     * <p>
-     * 请务必传递歌词和包名信息，当然您也可以传递其他参数
+     * 发布歌词数据
      */
     public static void sendLyric(@NonNull SuperLyricData data) {
         try {
@@ -83,9 +76,7 @@ public class SuperLyricHelper {
     }
 
     /**
-     * 歌曲暂停
-     * <p>
-     * 请务必传递包名信息，当然您也可以传递其他参数
+     * 发布状态暂停
      */
     public static void sendStop(@NonNull SuperLyricData data) {
         try {
@@ -195,41 +186,6 @@ public class SuperLyricHelper {
 
     // ---------------------------- 内部 API ------------------------------------
     // ---------------------------- 请勿修改 -------------------------------------
-
-    private static Field mMediaMetadataBundle;
-    private static final String[] KEYS = new String[]{
-        MediaMetadata.METADATA_KEY_ART,
-        MediaMetadata.METADATA_KEY_ALBUM_ART,
-        MediaMetadata.METADATA_KEY_DISPLAY_ICON
-    };
-
-    static {
-        try {
-            // noinspection JavaReflectionMemberAccess
-            mMediaMetadataBundle = MediaMetadata.class.getDeclaredField("mBundle");
-            mMediaMetadataBundle.setAccessible(true);
-        } catch (NoSuchFieldException ignore) {
-        }
-    }
-
-    @Nullable
-    static MediaMetadata removeMediaMetadataBitmap(@Nullable MediaMetadata mediaMetadata) {
-        if (mMediaMetadataBundle == null || mediaMetadata == null) {
-            return mediaMetadata;
-        }
-
-        try {
-            MediaMetadata metadata = new MediaMetadata.Builder(mediaMetadata).build();
-            Bundle bundle = (Bundle) mMediaMetadataBundle.get(metadata);
-            if (bundle == null) return null;
-            for (String key : KEYS) {
-                bundle.remove(key);
-            }
-            return metadata;
-        } catch (IllegalAccessException ignore) {
-        }
-        return mediaMetadata;
-    }
 
     private static void ensureManager() {
         if (mManager != null) {

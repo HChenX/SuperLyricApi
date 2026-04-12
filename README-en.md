@@ -44,7 +44,7 @@ dependencyResolutionManagement {
 
 // build.gradle (app module)
 dependencies {
-    implementation 'com.github.HChenX:SuperLyricApi:3.3'
+    implementation 'com.github.HChenX:SuperLyricApi:3.4'
 }
 ```
 
@@ -95,12 +95,6 @@ public static void ModuleDemo() {
                 SuperLyricLine translation = data.getTranslation();
             }
 
-            if (data.hasMediaMetadata()) {
-                MediaMetadata metadata = data.getMediaMetadata();
-            }
-            if (data.hasPlaybackState()) {
-                PlaybackState state = data.getPlaybackState();
-            }
             if (data.hasExtra()) {
                 Bundle extra = data.getExtra();
             }
@@ -111,9 +105,6 @@ public static void ModuleDemo() {
         @Override
         public void onStop(String publisher, SuperLyricData data) throws RemoteException {
             // Called when the publisher pauses playback or its process dies
-            if (data.hasPlaybackState()) {
-                PlaybackState state = data.getPlaybackState();
-            }
         }
     });
 
@@ -167,8 +158,6 @@ public static void MusicAppDemo() {
             )
             .setSecondary(new SuperLyricLine("Secondary line", 0, 900)) // Optional
             .setTranslation(new SuperLyricLine("Translation line", 0, 900)) // Optional
-            .setMediaMetadata(mediaMetadata) // Optional; Bitmap fields are stripped automatically
-            .setPlaybackState(playbackState) // Optional
             .setExtra(extraBundle) // Optional custom data
     );
 }
@@ -182,7 +171,6 @@ Call this when playback pauses or stops.
 public static void MusicAppDemo() {
     SuperLyricHelper.sendStop(
         new SuperLyricData()
-            .setPlaybackState(playbackState) // Optional
     );
 }
 ```
@@ -216,17 +204,15 @@ public static void MusicAppDemo() {
 
 ### `SuperLyricData`
 
-| Method                            | Description                                                                                          |
-|-----------------------------------|------------------------------------------------------------------------------------------------------|
-| `setTitle(String)`                | Song title.                                                                                          |
-| `setArtist(String)`               | Artist name.                                                                                         |
-| `setAlbum(String)`                | Album name.                                                                                          |
-| `setLyric(SuperLyricLine)`        | Primary lyric line.                                                                                  |
-| `setSecondary(SuperLyricLine)`    | Secondary lyric line (e.g. romanization).                                                            |
-| `setTranslation(SuperLyricLine)`  | Translation of the primary lyric.                                                                    |
-| `setMediaMetadata(MediaMetadata)` | Song metadata. **Bitmap fields are stripped automatically** to avoid Binder transaction size limits. |
-| `setPlaybackState(PlaybackState)` | Current playback state.                                                                              |
-| `setExtra(Bundle)`                | Custom key-value data. Merges with any existing extras.                                              |
+| Method                           | Description                                             |
+|----------------------------------|---------------------------------------------------------|
+| `setTitle(String)`               | Song title.                                             |
+| `setArtist(String)`              | Artist name.                                            |
+| `setAlbum(String)`               | Album name.                                             |
+| `setLyric(SuperLyricLine)`       | Primary lyric line.                                     |
+| `setSecondary(SuperLyricLine)`   | Secondary lyric line (e.g. romanization).               |
+| `setTranslation(SuperLyricLine)` | Translation of the primary lyric.                       |
+| `setExtra(Bundle)`               | Custom key-value data. Merges with any existing extras. |
 
 Each field has a corresponding `hasXxx()` guard method (`hasLyric()`, `hasTitle()`, etc.) — always
 check before accessing optional fields.

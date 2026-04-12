@@ -33,6 +33,6 @@ interface ISuperLyricReceiver {
     // 接收数据时调用
     void onLyric(in String publisher, in SuperLyricData data);
 
-    // 暂停时调用
+    // 播放暂停时调用
     void onStop(in String publisher, in SuperLyricData data);
 }

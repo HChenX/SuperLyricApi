@@ -40,10 +40,10 @@ interface ISuperLyricManager {
     // 是否已注册为发行商
     boolean isPublisherRegistered();
 
-    // 发布歌词
+    // 发布歌词数据
     void sendLyric(in SuperLyricData data);
 
-    // 发布暂停
+    // 发布状态暂停
     void sendStop(in SuperLyricData data);
 
     // 注册接收器

@@ -64,19 +64,18 @@ public class SuperLyricData implements Parcelable {
     /**
      * 当前歌曲的 MediaMetadata 数据
      * <p>
-     * Note：请注意，MediaMetadata 数据内的 Bitmap 数据已被抹去
-     * <p>
-     * 因为部分设备传递 MediaMetadata 内 Bitmap 数据时会因为其大小超出 Binder 限制而导致 Binder 破裂
-     * <p>
-     * 因此 API 主动抹去 MediaMetadata 中 Bitmap 数据以规避 Binder 破裂风险
+     * 此参数已被废弃，仅作为占位存在，用以保证 API 稳定性
      */
+    @Deprecated(since = "3.3")
     private MediaMetadata mediaMetadata = null;
     /**
      * 当前的播放状态
      * <p>
-     * 建议在播放状态暂停时设置
+     * 此参数已被废弃，仅作为占位存在，用以保证 API 稳定性
      */
+    @Deprecated(since = "3.3")
     private PlaybackState playbackState = null;
+
     /**
      * 音乐软件的图标
      * <p>
@@ -139,20 +138,6 @@ public class SuperLyricData implements Parcelable {
     }
 
     /**
-     * 是否存在 MediaMetadata 数据
-     */
-    public boolean hasMediaMetadata() {
-        return Objects.nonNull(mediaMetadata);
-    }
-
-    /**
-     * 是否存在 PlaybackState 数据
-     */
-    public boolean hasPlaybackState() {
-        return Objects.nonNull(playbackState);
-    }
-
-    /**
      * 是否存在 Base64 Icon 数据
      *
      * @deprecated
@@ -196,16 +181,6 @@ public class SuperLyricData implements Parcelable {
 
     public SuperLyricData setTranslation(SuperLyricLine translation) {
         this.translation = translation;
-        return this;
-    }
-
-    public SuperLyricData setMediaMetadata(MediaMetadata mediaMetadata) {
-        this.mediaMetadata = SuperLyricHelper.removeMediaMetadataBitmap(mediaMetadata);
-        return this;
-    }
-
-    public SuperLyricData setPlaybackState(PlaybackState playbackState) {
-        this.playbackState = playbackState;
         return this;
     }
 
@@ -259,16 +234,6 @@ public class SuperLyricData implements Parcelable {
     }
 
     @Nullable
-    public MediaMetadata getMediaMetadata() {
-        return mediaMetadata;
-    }
-
-    @Nullable
-    public PlaybackState getPlaybackState() {
-        return playbackState;
-    }
-
-    @Nullable
     @Deprecated(since = "1.8")
     public String getBase64Icon() {
         return base64Icon;
@@ -289,8 +254,6 @@ public class SuperLyricData implements Parcelable {
             ", lyric=" + lyric +
             ", secondary=" + secondary +
             ", translation=" + translation +
-            ", mediaMetadata=" + mediaMetadata +
-            ", playbackState=" + playbackState +
             ", base64Icon='" + base64Icon + '\'' +
             ", extra=" + extra +
             '}';
@@ -305,8 +268,6 @@ public class SuperLyricData implements Parcelable {
             Objects.equals(lyric, that.lyric) &&
             Objects.equals(secondary, that.secondary) &&
             Objects.equals(translation, that.translation) &&
-            Objects.equals(mediaMetadata, that.mediaMetadata) &&
-            Objects.equals(playbackState, that.playbackState) &&
             Objects.equals(base64Icon, that.base64Icon) &&
             Objects.equals(extra, that.extra);
     }
@@ -316,7 +277,7 @@ public class SuperLyricData implements Parcelable {
         return Objects.hash(
             title, artist, album,
             lyric, secondary, translation,
-            mediaMetadata, playbackState, base64Icon, extra
+            base64Icon, extra
         );
     }
 
