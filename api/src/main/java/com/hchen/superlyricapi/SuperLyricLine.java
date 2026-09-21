@@ -59,6 +59,16 @@ public class SuperLyricLine implements Parcelable {
      */
     @Deprecated(since = "3.2")
     private long delay = 0L;
+    /**
+     * 当前行翻译文本
+     */
+    @Nullable
+    private String translation = null;
+    /**
+     * 当前行次要/副歌词/罗马音文本
+     */
+    @Nullable
+    private String secondary = null;
 
     public SuperLyricLine(@NonNull String text) {
         ensureText(text);
@@ -76,6 +86,25 @@ public class SuperLyricLine implements Parcelable {
         ensureText(text);
         this.text = text;
         this.words = words;
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
+
+    public SuperLyricLine(@NonNull String text, @Nullable SuperLyricWord[] words, @Nullable String translation, long startTime, long endTime) {
+        ensureText(text);
+        this.text = text;
+        this.words = words;
+        this.translation = translation;
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
+
+    public SuperLyricLine(@NonNull String text, @Nullable SuperLyricWord[] words, @Nullable String translation, @Nullable String secondary, long startTime, long endTime) {
+        ensureText(text);
+        this.text = text;
+        this.words = words;
+        this.translation = translation;
+        this.secondary = secondary;
         this.startTime = startTime;
         this.endTime = endTime;
     }
@@ -131,6 +160,56 @@ public class SuperLyricLine implements Parcelable {
         return 0L;
     }
 
+    /**
+     * 是否存在翻译文本
+     */
+    public boolean hasTranslation() {
+        return Objects.nonNull(translation) && !translation.isEmpty();
+    }
+
+    /**
+     * 是否存在次要/副歌词/罗马音文本
+     */
+    public boolean hasSecondary() {
+        return Objects.nonNull(secondary) && !secondary.isEmpty();
+    }
+
+    @Nullable
+    public String getTranslation() {
+        return translation;
+    }
+
+    public SuperLyricLine setTranslation(@Nullable String translation) {
+        this.translation = translation;
+        return this;
+    }
+
+    @Nullable
+    public String getSecondary() {
+        return secondary;
+    }
+
+    public SuperLyricLine setSecondary(@Nullable String secondary) {
+        this.secondary = secondary;
+        return this;
+    }
+
+    /**
+     * 将当前行的翻译文本包装为独立的 {@link SuperLyricLine}
+     */
+    @Nullable
+    public SuperLyricLine getTranslationLine() {
+        return translation != null ? new SuperLyricLine(translation, startTime, endTime) : null;
+    }
+
+    /**
+     * 将当前行的副歌词文本包装为独立的 {@link SuperLyricLine}
+     */
+    @Nullable
+    public SuperLyricLine getSecondaryLine() {
+        return secondary != null ? new SuperLyricLine(secondary, startTime, endTime) : null;
+    }
+
     private void ensureText(String text) {
         Objects.requireNonNull(text, "Lyric text must not be null.");
     }
@@ -144,6 +223,8 @@ public class SuperLyricLine implements Parcelable {
             ", startTime=" + startTime +
             ", endTime=" + endTime +
             ", delay=" + getDelay() +
+            ", translation='" + translation + '\'' +
+            ", secondary='" + secondary + '\'' +
             '}';
     }
 
@@ -154,12 +235,14 @@ public class SuperLyricLine implements Parcelable {
             endTime == that.endTime &&
             delay == that.delay &&
             Objects.equals(text, that.text) &&
+            Objects.equals(translation, that.translation) &&
+            Objects.equals(secondary, that.secondary) &&
             Arrays.deepEquals(words, that.words);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(text, Arrays.hashCode(words), startTime, endTime, delay);
+        return Objects.hash(text, Arrays.hashCode(words), startTime, endTime, delay, translation, secondary);
     }
 
     public static final Creator<SuperLyricLine> CREATOR = new Creator<SuperLyricLine>() {
@@ -180,6 +263,9 @@ public class SuperLyricLine implements Parcelable {
         startTime = in.readLong();
         endTime = in.readLong();
         delay = in.readLong();
+
+        if (in.dataAvail() > 0) translation = in.readString();
+        if (in.dataAvail() > 0) secondary = in.readString();
     }
 
     @Override
@@ -189,6 +275,9 @@ public class SuperLyricLine implements Parcelable {
         dest.writeLong(startTime);
         dest.writeLong(endTime);
         dest.writeLong(delay);
+
+        dest.writeString(translation);
+        dest.writeString(secondary);
     }
 
     @Override

@@ -57,4 +57,7 @@ interface ISuperLyricManager {
 
     // 设置是否启用系统层播放状态监听功能
     void setSystemPlayStateListenerEnabled(in boolean enabled);
+
+    // 获取当前正在播放曲目的最新歌词数据（包含全量歌词与播放状态）
+    SuperLyricData getLatestLyric();
 }

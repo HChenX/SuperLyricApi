@@ -3,8 +3,8 @@ plugins {
     id 'maven-publish'
 }
 
-def defVersionName = '3.4'
-def defVersionCode = 34
+def defVersionName = '3.5'
+def defVersionCode = 35
 
 android {
     namespace 'com.hchen.superlyricapi'

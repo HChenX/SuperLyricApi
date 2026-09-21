@@ -25,6 +25,7 @@ import android.os.ServiceManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * API 助手
@@ -72,6 +73,44 @@ public class SuperLyricHelper {
             mManager.sendLyric(data);
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
+        }
+    }
+
+    /**
+     * 发布全量歌曲歌词数据（全量包）
+     * <p>
+     * 建议仅在歌曲初始化、切歌或歌词首次解析完毕时调用
+     */
+    public static void sendFullLyric(@NonNull SuperLyricData fullData) {
+        sendLyric(fullData);
+    }
+
+    /**
+     * 发布当前播放点位或行索引更新（增量包）
+     * <p>
+     * 会自动清空全量歌词数组（以降低 Binder 传输负担），仅保留点位索引、进度及向下兼容的单行数据
+     */
+    public static void sendLyricProgress(@NonNull SuperLyricData progressData) {
+        if (progressData.hasAllLyrics()) {
+            SuperLyricData delta = new SuperLyricData()
+                .setTitle(progressData.getTitle())
+                .setArtist(progressData.getArtist())
+                .setAlbum(progressData.getAlbum())
+                .setLyricId(progressData.getLyricId())
+                .setDuration(progressData.getDuration())
+                .setPosition(progressData.getPosition())
+                .setCurrentLyricIndex(progressData.getCurrentLyricIndex())
+                .setLyric(progressData.getCurrentLyric())
+                .setExtra(progressData.getExtra());
+            if (progressData.hasTranslation()) {
+                delta.setTranslation(progressData.getTranslation());
+            }
+            if (progressData.hasSecondary()) {
+                delta.setSecondary(progressData.getSecondary());
+            }
+            sendLyric(delta);
+        } else {
+            sendLyric(progressData);
         }
     }
 
@@ -182,6 +221,30 @@ public class SuperLyricHelper {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
         return false;
+    }
+
+    /**
+     * 获取当前正在播放曲目的最新歌词数据（支持主动拉取全量歌词与播放状态）
+     * <p>
+     * 常用于：
+     * <ul>
+     *   <li>接收端（如桌面悬浮窗、状态栏）冷启动时主动获取当前曲目的全量数据；</li>
+     *   <li>接收端收到增量包发现本地缓存缺失时，主动向系统服务拉取补全。</li>
+     * </ul>
+     *
+     * @return 当前播放的 {@link SuperLyricData}；若无播放或服务不可用则返回 {@code null}
+     */
+    @Nullable
+    public static SuperLyricData getLatestLyric() {
+        try {
+            ensureManager();
+            return mManager.getLatestLyric();
+        } catch (RemoteException e) {
+            Log.e(TAG, "SuperLyricManager RemoteException!!", e);
+        } catch (Throwable e) {
+            Log.w(TAG, "Failed to get latest lyric from SuperLyricManager", e);
+        }
+        return null;
     }
 
     // ---------------------------- 内部 API ------------------------------------
