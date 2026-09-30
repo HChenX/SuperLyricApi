@@ -233,6 +233,14 @@ public class SuperLyricData implements Parcelable {
 
     public SuperLyricData setLyric(SuperLyricLine lyric) {
         this.lyric = lyric;
+        if (lyric != null) {
+            if (lyric.hasTranslation() && this.translation == null) {
+                this.translation = lyric.getTranslationLine();
+            }
+            if (lyric.hasSecondary() && this.secondary == null) {
+                this.secondary = lyric.getSecondaryLine();
+            }
+        }
         return this;
     }
 
@@ -382,13 +390,19 @@ public class SuperLyricData implements Parcelable {
      */
     @Nullable
     public SuperLyricLine getCurrentLyric() {
-        if (lyric != null) {
-            return lyric;
+        SuperLyricLine line = lyric;
+        if (line == null && allLyrics != null && currentLyricIndex >= 0 && currentLyricIndex < allLyrics.length) {
+            line = allLyrics[currentLyricIndex];
         }
-        if (allLyrics != null && currentLyricIndex >= 0 && currentLyricIndex < allLyrics.length) {
-            return allLyrics[currentLyricIndex];
+        if (line != null) {
+            if ((line.getTranslation() == null || line.getTranslation().isEmpty()) && translation != null) {
+                line.setTranslation(translation.getText());
+            }
+            if ((line.getSecondary() == null || line.getSecondary().isEmpty()) && secondary != null) {
+                line.setSecondary(secondary.getText());
+            }
         }
-        return null;
+        return line;
     }
 
     /**
@@ -523,6 +537,15 @@ public class SuperLyricData implements Parcelable {
         playbackState = in.readParcelable(PlaybackState.class.getClassLoader());
         base64Icon = in.readString();
         extra = in.readBundle(SuperLyricData.class.getClassLoader());
+
+        if (lyric != null) {
+            if (translation != null && (lyric.getTranslation() == null || lyric.getTranslation().isEmpty())) {
+                lyric.setTranslation(translation.getText());
+            }
+            if (secondary != null && (lyric.getSecondary() == null || lyric.getSecondary().isEmpty())) {
+                lyric.setSecondary(secondary.getText());
+            }
+        }
 
         if (in.dataAvail() > 0) allLyrics = in.createTypedArray(SuperLyricLine.CREATOR);
         if (in.dataAvail() > 0) currentLyricIndex = in.readInt();
