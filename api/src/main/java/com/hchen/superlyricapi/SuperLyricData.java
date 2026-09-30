@@ -529,6 +529,33 @@ public class SuperLyricData implements Parcelable {
         if (in.dataAvail() > 0) duration = in.readLong();
         if (in.dataAvail() > 0) position = in.readLong();
         if (in.dataAvail() > 0) lyricId = in.readString();
+
+        if (allLyrics != null && in.dataAvail() > 0) {
+            boolean hasTrans = in.readBoolean();
+            if (hasTrans && in.dataAvail() > 0) {
+                String[] translations = in.createStringArray();
+                if (translations != null) {
+                    for (int i = 0; i < Math.min(translations.length, allLyrics.length); i++) {
+                        if (allLyrics[i] != null) {
+                            allLyrics[i].setTranslation(translations[i]);
+                        }
+                    }
+                }
+            }
+            if (in.dataAvail() > 0) {
+                boolean hasSec = in.readBoolean();
+                if (hasSec && in.dataAvail() > 0) {
+                    String[] secondaries = in.createStringArray();
+                    if (secondaries != null) {
+                        for (int i = 0; i < Math.min(secondaries.length, allLyrics.length); i++) {
+                            if (allLyrics[i] != null) {
+                                allLyrics[i].setSecondary(secondaries[i]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -549,6 +576,29 @@ public class SuperLyricData implements Parcelable {
         dest.writeLong(duration);
         dest.writeLong(position);
         dest.writeString(lyricId);
+
+        if (allLyrics != null) {
+            String[] translations = new String[allLyrics.length];
+            String[] secondaries = new String[allLyrics.length];
+            boolean hasTrans = false;
+            boolean hasSec = false;
+            for (int i = 0; i < allLyrics.length; i++) {
+                if (allLyrics[i] != null) {
+                    translations[i] = allLyrics[i].getTranslation();
+                    if (translations[i] != null) hasTrans = true;
+                    secondaries[i] = allLyrics[i].getSecondary();
+                    if (secondaries[i] != null) hasSec = true;
+                }
+            }
+            dest.writeBoolean(hasTrans);
+            if (hasTrans) {
+                dest.writeStringArray(translations);
+            }
+            dest.writeBoolean(hasSec);
+            if (hasSec) {
+                dest.writeStringArray(secondaries);
+            }
+        }
     }
 
     @Override

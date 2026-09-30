@@ -67,7 +67,7 @@ android {
 
     tasks.configureEach { task ->
         def name = task.name
-        if (name.contains("JavaWithJavac") && !name.contains("Test")) {
+        if ((name.contains("JavaWithJavac") || name.contains("Aidl")) && !name.contains("Test")) {
             task.finalizedBy(RemoveSuperLyricData)
         }
     }

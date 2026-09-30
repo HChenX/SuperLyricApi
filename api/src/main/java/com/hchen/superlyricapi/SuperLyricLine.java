@@ -263,9 +263,6 @@ public class SuperLyricLine implements Parcelable {
         startTime = in.readLong();
         endTime = in.readLong();
         delay = in.readLong();
-
-        if (in.dataAvail() > 0) translation = in.readString();
-        if (in.dataAvail() > 0) secondary = in.readString();
     }
 
     @Override
@@ -275,9 +272,6 @@ public class SuperLyricLine implements Parcelable {
         dest.writeLong(startTime);
         dest.writeLong(endTime);
         dest.writeLong(delay);
-
-        dest.writeString(translation);
-        dest.writeString(secondary);
     }
 
     @Override
