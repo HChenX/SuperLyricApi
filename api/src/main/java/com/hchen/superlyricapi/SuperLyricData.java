@@ -154,14 +154,22 @@ public class SuperLyricData implements Parcelable {
      * 是否存在次要歌词数据
      */
     public boolean hasSecondary() {
-        return Objects.nonNull(secondary);
+        if (Objects.nonNull(secondary)) {
+            return true;
+        }
+        SuperLyricLine cur = getCurrentLyric();
+        return cur != null && cur.hasSecondary();
     }
 
     /**
      * 是否存在歌词翻译数据
      */
     public boolean hasTranslation() {
-        return Objects.nonNull(translation);
+        if (Objects.nonNull(translation)) {
+            return true;
+        }
+        SuperLyricLine cur = getCurrentLyric();
+        return cur != null && cur.hasTranslation();
     }
 
     /**
@@ -295,12 +303,26 @@ public class SuperLyricData implements Parcelable {
 
     @Nullable
     public SuperLyricLine getSecondary() {
-        return secondary;
+        if (secondary != null) {
+            return secondary;
+        }
+        SuperLyricLine cur = getCurrentLyric();
+        if (cur != null && cur.hasSecondary()) {
+            return cur.getSecondaryLine();
+        }
+        return null;
     }
 
     @Nullable
     public SuperLyricLine getTranslation() {
-        return translation;
+        if (translation != null) {
+            return translation;
+        }
+        SuperLyricLine cur = getCurrentLyric();
+        if (cur != null && cur.hasTranslation()) {
+            return cur.getTranslationLine();
+        }
+        return null;
     }
 
     @Nullable
