@@ -21,15 +21,15 @@ package com.hchen.superlyricapi;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 歌词缓存与增量合成管理器
  * <p>
  * 配合全量/增量传输优化机制使用：
  * <ul>
- *   <li>自动缓存包含全量歌词（{@link SuperLyricData#hasAllLyrics()}）的数据包；</li>
+ *   <li>自动缓存包含全量歌词（{@link SuperLyricData#hasAllLyrics()}）的数据包，支持基于 LRU 策略的自动淘汰；</li>
  *   <li>对后续收到的增量/点位数据包（Delta Payload）执行智能合成，无缝还原为包含全曲所有行的完备视图；</li>
  *   <li>当接收端被杀重启发生缓存未命中时，自动通过 {@link SuperLyricHelper#getLatestLyric()} 向系统服务拉取补偿，实现透明自愈。</li>
  * </ul>
@@ -38,8 +38,20 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class SuperLyricCache {
     private static final int MAX_CACHE_SIZE = 30;
-    private static final Map<String, SuperLyricData> sLyricCache = new ConcurrentHashMap<>();
-    private static final Map<String, String> sMetaToIdIndex = new ConcurrentHashMap<>();
+    private static final Object sLock = new Object();
+
+    private static final Map<String, SuperLyricData> sLyricCache = new LinkedHashMap<String, SuperLyricData>(16, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, SuperLyricData> eldest) {
+            return size() > MAX_CACHE_SIZE;
+        }
+    };
+    private static final Map<String, String> sMetaToIdIndex = new LinkedHashMap<String, String>(16, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
+            return size() > MAX_CACHE_SIZE;
+        }
+    };
 
     private SuperLyricCache() {
     }
@@ -69,15 +81,17 @@ public final class SuperLyricCache {
 
         // 2. 增量包：尝试从本地缓存中查找全量数据
         SuperLyricData cached = null;
-        if (incoming.hasLyricId()) {
-            cached = sLyricCache.get(incoming.getLyricId());
-        }
+        synchronized (sLock) {
+            if (incoming.hasLyricId()) {
+                cached = sLyricCache.get(incoming.getLyricId());
+            }
 
-        if (cached == null && incoming.hasTitle()) {
-            String fallbackKey = buildMetaKey(incoming.getTitle(), incoming.getArtist());
-            String lyricId = sMetaToIdIndex.get(fallbackKey);
-            if (lyricId != null) {
-                cached = sLyricCache.get(lyricId);
+            if (cached == null && incoming.hasTitle()) {
+                String fallbackKey = buildMetaKey(incoming.getTitle(), incoming.getArtist());
+                String lyricId = sMetaToIdIndex.get(fallbackKey);
+                if (lyricId != null) {
+                    cached = sLyricCache.get(lyricId);
+                }
             }
         }
 
@@ -167,21 +181,17 @@ public final class SuperLyricCache {
             return;
         }
 
-        if (sLyricCache.size() >= MAX_CACHE_SIZE) {
-            // 超出容量时简单清空最早条目或直接清理
-            sLyricCache.clear();
-            sMetaToIdIndex.clear();
-        }
-
         String lyricId = data.getLyricId();
         if (lyricId == null || lyricId.isEmpty()) {
             lyricId = buildMetaKey(data.getTitle(), data.getArtist());
             data.setLyricId(lyricId);
         }
 
-        sLyricCache.put(lyricId, data);
-        if (data.hasTitle()) {
-            sMetaToIdIndex.put(buildMetaKey(data.getTitle(), data.getArtist()), lyricId);
+        synchronized (sLock) {
+            sLyricCache.put(lyricId, data);
+            if (data.hasTitle()) {
+                sMetaToIdIndex.put(buildMetaKey(data.getTitle(), data.getArtist()), lyricId);
+            }
         }
     }
 
@@ -193,22 +203,28 @@ public final class SuperLyricCache {
         if (lyricId == null) {
             return null;
         }
-        return sLyricCache.get(lyricId);
+        synchronized (sLock) {
+            return sLyricCache.get(lyricId);
+        }
     }
 
     /**
      * 清空本地所有歌词缓存
      */
     public static void clear() {
-        sLyricCache.clear();
-        sMetaToIdIndex.clear();
+        synchronized (sLock) {
+            sLyricCache.clear();
+            sMetaToIdIndex.clear();
+        }
     }
 
     /**
      * 获取当前缓存中的曲目数量
      */
     public static int size() {
-        return sLyricCache.size();
+        synchronized (sLock) {
+            return sLyricCache.size();
+        }
     }
 
     @NonNull

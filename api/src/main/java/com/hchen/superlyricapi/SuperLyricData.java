@@ -147,7 +147,7 @@ public class SuperLyricData implements Parcelable {
      * 是否存在歌词数据
      */
     public boolean hasLyric() {
-        return Objects.nonNull(lyric);
+        return Objects.nonNull(lyric) || Objects.nonNull(getCurrentLyric());
     }
 
     /**
@@ -298,7 +298,10 @@ public class SuperLyricData implements Parcelable {
 
     @Nullable
     public SuperLyricLine getLyric() {
-        return lyric;
+        if (lyric != null) {
+            return lyric;
+        }
+        return getCurrentLyric();
     }
 
     @Nullable
@@ -576,7 +579,7 @@ public class SuperLyricData implements Parcelable {
         if (in.dataAvail() > 0) lyricId = in.readString();
 
         if (allLyrics != null && in.dataAvail() > 0) {
-            boolean hasTrans = in.readBoolean();
+            boolean hasTrans = in.readByte() != 0;
             if (hasTrans && in.dataAvail() > 0) {
                 String[] translations = in.createStringArray();
                 if (translations != null) {
@@ -588,7 +591,7 @@ public class SuperLyricData implements Parcelable {
                 }
             }
             if (in.dataAvail() > 0) {
-                boolean hasSec = in.readBoolean();
+                boolean hasSec = in.readByte() != 0;
                 if (hasSec && in.dataAvail() > 0) {
                     String[] secondaries = in.createStringArray();
                     if (secondaries != null) {
@@ -608,9 +611,13 @@ public class SuperLyricData implements Parcelable {
         dest.writeString(title);
         dest.writeString(artist);
         dest.writeString(album);
-        dest.writeParcelable(lyric, flags);
-        dest.writeParcelable(secondary, flags);
-        dest.writeParcelable(translation, flags);
+        SuperLyricLine outLyric = (lyric != null) ? lyric : getCurrentLyric();
+        SuperLyricLine outSec = (secondary != null) ? secondary : (outLyric != null && outLyric.hasSecondary() ? outLyric.getSecondaryLine() : null);
+        SuperLyricLine outTrans = (translation != null) ? translation : (outLyric != null && outLyric.hasTranslation() ? outLyric.getTranslationLine() : null);
+
+        dest.writeParcelable(outLyric, flags);
+        dest.writeParcelable(outSec, flags);
+        dest.writeParcelable(outTrans, flags);
         dest.writeParcelable(mediaMetadata, flags);
         dest.writeParcelable(playbackState, flags);
         dest.writeString(base64Icon);
@@ -635,11 +642,11 @@ public class SuperLyricData implements Parcelable {
                     if (secondaries[i] != null) hasSec = true;
                 }
             }
-            dest.writeBoolean(hasTrans);
+            dest.writeByte((byte) (hasTrans ? 1 : 0));
             if (hasTrans) {
                 dest.writeStringArray(translations);
             }
-            dest.writeBoolean(hasSec);
+            dest.writeByte((byte) (hasSec ? 1 : 0));
             if (hasSec) {
                 dest.writeStringArray(secondaries);
             }

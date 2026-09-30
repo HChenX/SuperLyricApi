@@ -44,7 +44,7 @@ dependencyResolutionManagement {
 
 // build.gradle (app module)
 dependencies {
-    implementation 'com.github.HChenX:SuperLyricApi:3.5'
+    implementation 'com.github.HChenX:SuperLyricApi:3.6'
 }
 ```
 
@@ -290,7 +290,7 @@ Represents a single line of lyrics.
 
 ### `SuperLyricCache`
 
-Provides full-song caching, delta packet merging, and receiver crash-recovery self-healing.
+Provides thread-safe LRU-based full-song caching, delta packet merging, and receiver crash-recovery self-healing without abrupt cache flushes.
 
 | Method                                  | Description                                                                        |
 |-----------------------------------------|------------------------------------------------------------------------------------|

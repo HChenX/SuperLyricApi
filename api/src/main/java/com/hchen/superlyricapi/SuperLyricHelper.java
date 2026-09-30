@@ -47,7 +47,7 @@ public class SuperLyricHelper {
         try {
             ensureManager();
             return mManager != null;
-        } catch (IllegalStateException ignore) {
+        } catch (Throwable ignore) {
             return false;
         }
     }

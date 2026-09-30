@@ -42,7 +42,7 @@ dependencyResolutionManagement {
 
 // build.gradle (app module)
 dependencies {
-    implementation 'com.github.HChenX:SuperLyricApi:3.5'
+    implementation 'com.github.HChenX:SuperLyricApi:3.6'
 }
 ```
 
@@ -283,7 +283,7 @@ public static void MusicAppDemo() {
 
 ### `SuperLyricCache`
 
-提供全量歌词缓存、增量包智能合成及被杀重启自愈功能。
+提供基于线程安全 LRU 策略的全量歌词缓存、增量包智能合成及被杀重启自愈功能。避免暴力清空引发的数据抖动。
 
 | 方法                                      | 描述                                                |
 |-----------------------------------------|---------------------------------------------------|
