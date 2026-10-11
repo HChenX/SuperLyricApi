@@ -37,6 +37,11 @@ public class SuperLyricHelper {
     private static final String TAG = "SuperLyricHelper";
     private volatile static ISuperLyricManager mManager;
 
+    /**
+     * {@link #getServerApiVersion()} 在服务端过旧、不认识该查询时的返回值
+     */
+    public static final int API_VERSION_UNKNOWN = -1;
+
     private SuperLyricHelper() {
     }
 
@@ -53,76 +58,90 @@ public class SuperLyricHelper {
     }
 
     /**
-     * 获取当前 API 版本
+     * 获取**本库编译时**的 API 版本号
      */
     public static int getApiVersion() {
         return BuildConfig.API_VERSION;
+    }
+
+    /**
+     * 查询**服务端（SuperLyric 模块）实际实现**的 API 版本号
+     *
+     * @return 服务端实现的版本号；服务端过旧（无此方法）时返回 {@link #API_VERSION_UNKNOWN}
+     */
+    public static int getServerApiVersion() {
+        try {
+            ensureManager();
+            return mManager.getServerApiVersion();
+        } catch (Throwable t) {
+            // 旧版服务端没有这个事务号，调用会抛异常，此处无从得知其版本
+            return API_VERSION_UNKNOWN;
+        }
     }
 
     // -------------------------- 为第三方音乐软件提供的 API -----------------------------------
     // ------------------------------- 模块内请勿使用 -----------------------------------------
 
     /**
-     * 发布歌词数据
+     * 发布整首歌词数据 —— **唯一的发布入口**
+     * <p>
+     * 在歌曲初始化、切歌或歌词首次解析完毕时调用一次即可，数据应当携带完整的
+     * `allLyrics`。其中两个字段是**必填**的：
+     * <ul>
+     *   <li>{@code lyricId} —— 会话标识，也是接收端缓存自愈的键</li>
+     *   <li>{@code duration} —— 服务端时钟插值的锚；缺失时服务端会尝试从系统元数据补齐</li>
+     * </ul>
+     * <p>
+     * <b>播放进度与行切换不需要由应用发布。</b> SuperLyric 的服务端时钟会自行推算播放位置、
+     * 判断当前行，并在跨行时构造轻量增量包广播给接收端。应用侧重复推送只会造成两份时钟互相干扰
      */
     public static void sendLyric(@NonNull SuperLyricData data) {
-        try {
-            ensureManager();
-            ensurePublisherRegistered();
+        ISuperLyricManager manager = managerOrNull();
+        if (manager == null) return;
 
-            mManager.sendLyric(data);
+        try {
+            ensurePublisherRegistered(manager);
+            warnIfIncomplete(data);
+            manager.sendLyric(data);
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
     }
 
     /**
-     * 发布全量歌曲歌词数据（全量包）
-     * <p>
-     * 建议仅在歌曲初始化、切歌或歌词首次解析完毕时调用
+     * 关键字段缺失时逐条告警
      */
-    public static void sendFullLyric(@NonNull SuperLyricData fullData) {
-        sendLyric(fullData);
-    }
-
-    /**
-     * 发布当前播放点位或行索引更新（增量包）
-     * <p>
-     * 会自动清空全量歌词数组（以降低 Binder 传输负担），仅保留点位索引、进度及向下兼容的单行数据
-     */
-    public static void sendLyricProgress(@NonNull SuperLyricData progressData) {
-        if (progressData.hasAllLyrics()) {
-            SuperLyricData delta = new SuperLyricData()
-                .setTitle(progressData.getTitle())
-                .setArtist(progressData.getArtist())
-                .setAlbum(progressData.getAlbum())
-                .setLyricId(progressData.getLyricId())
-                .setDuration(progressData.getDuration())
-                .setPosition(progressData.getPosition())
-                .setCurrentLyricIndex(progressData.getCurrentLyricIndex())
-                .setLyric(progressData.getCurrentLyric())
-                .setExtra(progressData.getExtra());
-            if (progressData.hasTranslation()) {
-                delta.setTranslation(progressData.getTranslation());
-            }
-            if (progressData.hasSecondary()) {
-                delta.setSecondary(progressData.getSecondary());
-            }
-            sendLyric(delta);
-        } else {
-            sendLyric(progressData);
+    private static void warnIfIncomplete(@NonNull SuperLyricData data) {
+        if (!data.hasAllLyrics()) {
+            Log.w(TAG, "sendLyric: allLyrics is missing or empty, receivers cannot build a full view");
+        }
+        if (!data.hasLyricId()) {
+            Log.w(TAG, "sendLyric: lyricId is missing, receiver caches fall back to title/artist matching");
+        }
+        if (!data.hasDuration()) {
+            Log.w(TAG, "sendLyric: duration is missing, progress cannot be interpolated until the system metadata supplies one");
+        }
+        if (!data.hasTitle()) {
+            Log.w(TAG, "sendLyric: title is missing, the track cannot be identified or matched");
         }
     }
 
     /**
-     * 发布状态暂停
+     * 结束当前发布会话：清除本应用已发布的歌词，并令接收端收到 {@code onStop}
+     * <p>
+     * <b>集成方通常不需要主动调用。</b> SuperLyric 监听系统 `MediaSession`，播放器进入
+     * `STOPPED` / `NONE` / `ERROR` 时会自动完成上述动作
+     * <p>
+     * 它仍然有实际用处的场景是「**切歌时立刻清场**」——需要马上抹掉上一首的歌词、
+     * 而不是等系统状态回调时使用
      */
     public static void sendStop(@NonNull SuperLyricData data) {
-        try {
-            ensureManager();
-            ensurePublisherRegistered();
+        ISuperLyricManager manager = managerOrNull();
+        if (manager == null) return;
 
-            mManager.sendStop(data);
+        try {
+            ensurePublisherRegistered(manager);
+            manager.sendStop(data);
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
@@ -134,9 +153,11 @@ public class SuperLyricHelper {
      * 发布歌词之前请务必先注册为发行商，否则将会触发异常
      */
     public static void registerPublisher() {
+        ISuperLyricManager manager = managerOrNull();
+        if (manager == null) return;
+
         try {
-            ensureManager();
-            mManager.registerPublisher();
+            manager.registerPublisher();
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
@@ -148,9 +169,11 @@ public class SuperLyricHelper {
      * 您可以自行调用此方法解除注册，也可交由系统自行管理，当您的应用死亡时会自动解除注册
      */
     public static void unregisterPublisher() {
+        ISuperLyricManager manager = managerOrNull();
+        if (manager == null) return;
+
         try {
-            ensureManager();
-            mManager.unregisterPublisher();
+            manager.unregisterPublisher();
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
@@ -160,28 +183,19 @@ public class SuperLyricHelper {
      * 是否已注册为发行商
      */
     public static boolean isPublisherRegistered() {
+        ISuperLyricManager manager = managerOrNull();
+        if (manager == null) return false;
+
         try {
-            ensureManager();
-            return mManager.isPublisherRegistered();
+            return manager.isPublisherRegistered();
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
         return false;
     }
 
-    /**
-     * 是否启用系统层面的播放状态监听器
-     * <p>
-     * 如果禁用，则请自行发布 sendStop，MediaMetadata，PlaybackState 等数据
-     */
-    public static void setSystemPlayStateListenerEnabled(boolean enabled) {
-        try {
-            ensureManager();
-            mManager.setSystemPlayStateListenerEnabled(enabled);
-        } catch (RemoteException e) {
-            Log.e(TAG, "SuperLyricManager RemoteException!!", e);
-        }
-    }
+    // setSystemPlayStateListenerEnabled 的 Java helper 已移除：SuperLyric 恒常监听系统
+    // MediaSession，该开关不再对集成方开放。
 
     // -------------------------- 为模块提供注册接收器的能力 -----------------------------------
     // ---------------------------- 第三方音乐软件请勿使用 ------------------------------------
@@ -190,9 +204,11 @@ public class SuperLyricHelper {
      * 注册 ISuperLyricReceiver 接收器
      */
     public static void registerReceiver(@NonNull ISuperLyricReceiver receiver) {
+        ISuperLyricManager manager = managerOrNull();
+        if (manager == null) return;
+
         try {
-            ensureManager();
-            mManager.registerReceiver(receiver);
+            manager.registerReceiver(receiver);
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
@@ -202,9 +218,11 @@ public class SuperLyricHelper {
      * 注销 ISuperLyricReceiver 接收器
      */
     public static void unregisterReceiver(@NonNull ISuperLyricReceiver receiver) {
+        ISuperLyricManager manager = managerOrNull();
+        if (manager == null) return;
+
         try {
-            ensureManager();
-            mManager.unregisterReceiver(receiver);
+            manager.unregisterReceiver(receiver);
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
@@ -214,9 +232,11 @@ public class SuperLyricHelper {
      * 接收器是否已被注册
      */
     public static boolean isReceiverRegistered(@NonNull ISuperLyricReceiver receiver) {
+        ISuperLyricManager manager = managerOrNull();
+        if (manager == null) return false;
+
         try {
-            ensureManager();
-            return mManager.isReceiverRegistered(receiver);
+            return manager.isReceiverRegistered(receiver);
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }
@@ -279,11 +299,21 @@ public class SuperLyricHelper {
         }
     }
 
-    private static void ensurePublisherRegistered() {
-        boolean isRegistered = false;
+    @Nullable
+    private static ISuperLyricManager managerOrNull() {
         try {
             ensureManager();
-            isRegistered = mManager.isPublisherRegistered();
+            return mManager;
+        } catch (Throwable t) {
+            Log.w(TAG, "SuperLyric service unavailable: " + t.getMessage());
+            return null;
+        }
+    }
+
+    private static void ensurePublisherRegistered(@NonNull ISuperLyricManager manager) {
+        boolean isRegistered = false;
+        try {
+            isRegistered = manager.isPublisherRegistered();
         } catch (RemoteException e) {
             Log.e(TAG, "SuperLyricManager RemoteException!!", e);
         }

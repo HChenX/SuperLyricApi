@@ -40,10 +40,10 @@ interface ISuperLyricManager {
     // 是否已注册为发行商
     boolean isPublisherRegistered();
 
-    // 发布歌词数据
+    // 发布歌词数据（唯一的发布入口，应携带整首歌词）
     void sendLyric(in SuperLyricData data);
 
-    // 发布状态暂停
+    // 结束当前发布会话：清除已发布歌词并向接收端广播 onStop
     void sendStop(in SuperLyricData data);
 
     // 注册接收器
@@ -55,9 +55,12 @@ interface ISuperLyricManager {
     // 此接收器是否已经被注册
     boolean isReceiverRegistered(in ISuperLyricReceiver receiver);
 
-    // 设置是否启用系统层播放状态监听功能
+    // ⚠️ 保留声明，但已不再对集成方开放
     void setSystemPlayStateListenerEnabled(in boolean enabled);
 
     // 获取当前正在播放曲目的最新歌词数据（包含全量歌词与播放状态）
     SuperLyricData getLatestLyric();
+
+    // 查询服务端（SuperLyric 模块）实际实现的 API 版本号
+    int getServerApiVersion();
 }

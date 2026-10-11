@@ -23,6 +23,7 @@ import android.media.session.PlaybackState;
 import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -39,6 +40,8 @@ import java.util.Objects;
  * @author 焕晨HChen
  */
 public class SuperLyricData implements Parcelable {
+    private static final String TAG = "SuperLyricData";
+
     /**
      * 歌曲的标题
      */
@@ -147,7 +150,7 @@ public class SuperLyricData implements Parcelable {
      * 是否存在歌词数据
      */
     public boolean hasLyric() {
-        return Objects.nonNull(lyric) || Objects.nonNull(getCurrentLyric());
+        return Objects.nonNull(lyric);
     }
 
     /**
@@ -157,8 +160,7 @@ public class SuperLyricData implements Parcelable {
         if (Objects.nonNull(secondary)) {
             return true;
         }
-        SuperLyricLine cur = getCurrentLyric();
-        return cur != null && cur.hasSecondary();
+        return lyric != null && lyric.hasSecondary();
     }
 
     /**
@@ -168,8 +170,7 @@ public class SuperLyricData implements Parcelable {
         if (Objects.nonNull(translation)) {
             return true;
         }
-        SuperLyricLine cur = getCurrentLyric();
-        return cur != null && cur.hasTranslation();
+        return lyric != null && lyric.hasTranslation();
     }
 
     /**
@@ -241,14 +242,6 @@ public class SuperLyricData implements Parcelable {
 
     public SuperLyricData setLyric(SuperLyricLine lyric) {
         this.lyric = lyric;
-        if (lyric != null) {
-            if (lyric.hasTranslation() && this.translation == null) {
-                this.translation = lyric.getTranslationLine();
-            }
-            if (lyric.hasSecondary() && this.secondary == null) {
-                this.secondary = lyric.getSecondaryLine();
-            }
-        }
         return this;
     }
 
@@ -298,10 +291,7 @@ public class SuperLyricData implements Parcelable {
 
     @Nullable
     public SuperLyricLine getLyric() {
-        if (lyric != null) {
-            return lyric;
-        }
-        return getCurrentLyric();
+        return lyric;
     }
 
     @Nullable
@@ -309,9 +299,8 @@ public class SuperLyricData implements Parcelable {
         if (secondary != null) {
             return secondary;
         }
-        SuperLyricLine cur = getCurrentLyric();
-        if (cur != null && cur.hasSecondary()) {
-            return cur.getSecondaryLine();
+        if (lyric != null && lyric.hasSecondary()) {
+            return lyric.getSecondaryLine();
         }
         return null;
     }
@@ -321,9 +310,8 @@ public class SuperLyricData implements Parcelable {
         if (translation != null) {
             return translation;
         }
-        SuperLyricLine cur = getCurrentLyric();
-        if (cur != null && cur.hasTranslation()) {
-            return cur.getTranslationLine();
+        if (lyric != null && lyric.hasTranslation()) {
+            return lyric.getTranslationLine();
         }
         return null;
     }
@@ -370,7 +358,17 @@ public class SuperLyricData implements Parcelable {
         return allLyrics != null ? allLyrics.length : 0;
     }
 
+    /**
+     * 设置当前播放行下标，从 0 开始
+     *
+     * @param currentLyricIndex 行下标；小于 -1 的值无意义，会被归一化为 -1（即"未设置"）
+     */
     public SuperLyricData setCurrentLyricIndex(int currentLyricIndex) {
+        if (currentLyricIndex < -1) {
+            Log.w(TAG, "setCurrentLyricIndex: " + currentLyricIndex + " normalized to -1 (unset)");
+            this.currentLyricIndex = -1;
+            return this;
+        }
         this.currentLyricIndex = currentLyricIndex;
         return this;
     }
@@ -388,7 +386,17 @@ public class SuperLyricData implements Parcelable {
         return duration;
     }
 
+    /**
+     * 设置当前播放进度
+     *
+     * @param position 播放进度毫秒；小于 -1 的值无意义，会被归一化为 -1（即"未设置"）
+     */
     public SuperLyricData setPosition(long position) {
+        if (position < -1L) {
+            Log.w(TAG, "setPosition: " + position + " normalized to -1 (unset)");
+            this.position = -1L;
+            return this;
+        }
         this.position = position;
         return this;
     }
@@ -405,29 +413,6 @@ public class SuperLyricData implements Parcelable {
     @Nullable
     public String getLyricId() {
         return lyricId;
-    }
-
-    /**
-     * 获取当前正在播放的歌词行
-     * <p>
-     * 优先返回已设置的单行 {@link #getLyric()}；
-     * 若未设置，但存在全量歌词且当前行索引有效，则自动从全量列表中获取对应行
-     */
-    @Nullable
-    public SuperLyricLine getCurrentLyric() {
-        SuperLyricLine line = lyric;
-        if (line == null && allLyrics != null && currentLyricIndex >= 0 && currentLyricIndex < allLyrics.length) {
-            line = allLyrics[currentLyricIndex];
-        }
-        if (line != null) {
-            if ((line.getTranslation() == null || line.getTranslation().isEmpty()) && translation != null) {
-                line.setTranslation(translation.getText());
-            }
-            if ((line.getSecondary() == null || line.getSecondary().isEmpty()) && secondary != null) {
-                line.setSecondary(secondary.getText());
-            }
-        }
-        return line;
     }
 
     /**
@@ -484,10 +469,17 @@ public class SuperLyricData implements Parcelable {
     }
 
     /**
-     * 是否为增量/点位数据包（不含整首歌曲，仅提供点位或单行更新）
+     * 是否为增量/点位数据包：不含整首歌词，但携带了当前行、行下标或播放点位
      */
     public boolean isDeltaPayload() {
-        return !hasAllLyrics() && hasLyricId();
+        return !hasAllLyrics() && (hasCurrentLyricIndex() || hasLyric() || hasPosition());
+    }
+
+    /**
+     * 是否为停止 / 空包：既不含整首歌词，也没有任何当前行信息
+     */
+    public boolean isStopPayload() {
+        return !hasAllLyrics() && !isDeltaPayload();
     }
 
     @NonNull
@@ -523,7 +515,7 @@ public class SuperLyricData implements Parcelable {
             Objects.equals(secondary, that.secondary) &&
             Objects.equals(translation, that.translation) &&
             Objects.equals(base64Icon, that.base64Icon) &&
-            Objects.equals(extra, that.extra) &&
+            extrasEqual(extra, that.extra) &&
             Objects.equals(lyricId, that.lyricId) &&
             Arrays.deepEquals(allLyrics, that.allLyrics);
     }
@@ -533,10 +525,33 @@ public class SuperLyricData implements Parcelable {
         return Objects.hash(
             title, artist, album,
             lyric, secondary, translation,
-            base64Icon, extra,
+            base64Icon, extrasHash(extra),
             Arrays.hashCode(allLyrics), currentLyricIndex,
             duration, position, lyricId
         );
+    }
+
+    @SuppressWarnings("deprecation")
+    private static boolean extrasEqual(@Nullable Bundle a, @Nullable Bundle b) {
+        if (a == b) return true;
+        if (a == null || b == null) return false;
+        if (a.size() != b.size()) return false;
+        for (String key : a.keySet()) {
+            if (!b.containsKey(key) || !Objects.equals(a.get(key), b.get(key))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @SuppressWarnings("deprecation")
+    private static int extrasHash(@Nullable Bundle bundle) {
+        if (bundle == null) return 0;
+        int hash = 0;
+        for (String key : bundle.keySet()) {
+            hash += key.hashCode() ^ Objects.hashCode(bundle.get(key));
+        }
+        return hash;
     }
 
     public static final Creator<SuperLyricData> CREATOR = new Creator<SuperLyricData>() {
@@ -562,15 +577,6 @@ public class SuperLyricData implements Parcelable {
         playbackState = in.readParcelable(PlaybackState.class.getClassLoader());
         base64Icon = in.readString();
         extra = in.readBundle(SuperLyricData.class.getClassLoader());
-
-        if (lyric != null) {
-            if (translation != null && (lyric.getTranslation() == null || lyric.getTranslation().isEmpty())) {
-                lyric.setTranslation(translation.getText());
-            }
-            if (secondary != null && (lyric.getSecondary() == null || lyric.getSecondary().isEmpty())) {
-                lyric.setSecondary(secondary.getText());
-            }
-        }
 
         if (in.dataAvail() > 0) allLyrics = in.createTypedArray(SuperLyricLine.CREATOR);
         if (in.dataAvail() > 0) currentLyricIndex = in.readInt();
@@ -604,6 +610,16 @@ public class SuperLyricData implements Parcelable {
                 }
             }
         }
+
+        // 兼容镜像：旧版发布端把翻译/副歌词放在 Data 上，此时行内为空 —— 读取时写回当前行
+        if (lyric != null) {
+            if (translation != null && (lyric.getTranslation() == null || lyric.getTranslation().isEmpty())) {
+                lyric.setTranslation(translation.getText());
+            }
+            if (secondary != null && (lyric.getSecondary() == null || lyric.getSecondary().isEmpty())) {
+                lyric.setSecondary(secondary.getText());
+            }
+        }
     }
 
     @Override
@@ -611,7 +627,7 @@ public class SuperLyricData implements Parcelable {
         dest.writeString(title);
         dest.writeString(artist);
         dest.writeString(album);
-        SuperLyricLine outLyric = (lyric != null) ? lyric : getCurrentLyric();
+        SuperLyricLine outLyric = lyric;
         SuperLyricLine outSec = (secondary != null) ? secondary : (outLyric != null && outLyric.hasSecondary() ? outLyric.getSecondaryLine() : null);
         SuperLyricLine outTrans = (translation != null) ? translation : (outLyric != null && outLyric.hasTranslation() ? outLyric.getTranslationLine() : null);
 

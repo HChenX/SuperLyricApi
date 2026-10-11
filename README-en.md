@@ -44,7 +44,7 @@ dependencyResolutionManagement {
 
 // build.gradle (app module)
 dependencies {
-    implementation 'com.github.HChenX:SuperLyricApi:3.6'
+    implementation 'com.github.HChenX:SuperLyricApi:3.7'
 }
 ```
 
@@ -74,8 +74,8 @@ public static void ModuleDemo() {
             long duration = data.getDuration(); // Total track duration (ms)
             long position = data.getPosition(); // Current playback position (ms)
 
-            // 1. Get currently playing line (backward-compatible and works for single-line or full-song)
-            SuperLyricLine currentLine = data.getCurrentLyric();
+            // 1. Current line (single-line channel: the current line in a delta, the first line in a full payload)
+            SuperLyricLine currentLine = data.getLyric();
             if (currentLine != null) {
                 String text = currentLine.getText();
                 long startTime = currentLine.getStartTime(); // ms
@@ -130,10 +130,15 @@ public static void ModuleDemo() {
 
 Music apps must register as a **publisher** before sending any data.
 
-### 1. Check service availability
+### 1. Check service availability and version
 
 ```java
 boolean available = SuperLyricHelper.isAvailable();
+
+// Optional: check that the module installed on the device matches this library
+int libraryVersion = SuperLyricHelper.getApiVersion();      // version this library was built from
+int serverVersion = SuperLyricHelper.getServerApiVersion(); // version the service implements
+// serverVersion == SuperLyricHelper.API_VERSION_UNKNOWN (-1) means the service is too old to answer
 ```
 
 ### 2. Register as a publisher
@@ -149,9 +154,12 @@ public static void MusicAppDemo() {
 
 ### 3. Send lyric data
 
-We recommend using the **Full Payload + Delta Progress Payload** optimization strategy:
+**A music app only needs to publish the full payload.** Playback progress and line switching are
+driven by SuperLyric's own service-side clock, which builds the lightweight delta packets and
+broadcasts them to receivers whenever the current line changes. The app should not push progress
+itself.
 
-#### 3.1 On Track Switch / Initial Load (Send Full Payload)
+#### 3.1 On Track Switch / Initial Load (Publish the Full Payload)
 
 ```java
 public static void MusicAppDemo() {
@@ -164,13 +172,13 @@ public static void MusicAppDemo() {
         new SuperLyricLine("Next lyric line", null, "下一句歌词", null, 900, 2000),
     };
 
-    SuperLyricHelper.sendFullLyric(
+    SuperLyricHelper.sendLyric(
         new SuperLyricData()
             .setTitle("Song Title")
             .setArtist("Artist Name")
             .setAlbum("Album Name")
-            .setLyricId("song_unique_id") // Recommended unique ID for cache matching & self-healing
-            .setDuration(180000L) // Total duration (ms)
+            .setLyricId("song_unique_id") // Required: session identity, and the key receivers cache on
+            .setDuration(180000L) // Required: the anchor the service-side clock interpolates from (repaired from system metadata when absent)
             .setAllLyrics(allLines) // Full track lines
             .setCurrentLyricIndex(0) // Current line index
             .setLyric(allLines[0]) // Backward compatibility for legacy single-line receivers
@@ -178,25 +186,19 @@ public static void MusicAppDemo() {
 }
 ```
 
-#### 3.2 During Playback / Line Changes (Send Lightweight Delta Payload)
+#### 3.2 Line Changes / Progress During Playback
 
-During playback, there is no need to re-transmit the heavy `allLyrics` array across Binder:
-
-```java
-public static void onLineChanged(int newIndex, long currentPositionMs, SuperLyricLine currentLine) {
-    SuperLyricHelper.sendLyricProgress(
-        new SuperLyricData()
-            .setLyricId("song_unique_id")
-            .setCurrentLyricIndex(newIndex) // Current line index
-            .setPosition(currentPositionMs) // Playback timestamp (ms)
-            .setLyric(currentLine) // Backward compatibility
-    );
-}
-```
+**Nothing to do.** Once the full payload is received, SuperLyric derives the playback position from
+its own clock, tracks the current line, and broadcasts a delta packet to receivers on every line
+change. Pushing progress from the app as well would put two clocks in competition.
 
 ### 4. Send a stop event
 
-Call this when playback pauses or stops.
+**Not needed by default.** SuperLyric listens to the system `MediaSession` through
+`SystemPlayStateListener` and broadcasts a stop to receivers automatically once the player reaches
+`STOPPED` / `NONE` / `ERROR`. Leave that listener enabled.
+
+You only need to send it yourself if you disabled the listener in §6:
 
 ```java
 public static void MusicAppDemo() {
@@ -217,17 +219,13 @@ public static void MusicAppDemo() {
 }
 ```
 
-### 6. System playback state listener
+### 6. About system playback state
 
-By default, SuperLyric listens to the system's `MediaSession` events to automatically handle
-playback-state change. If you prefer to manage these manually, disable it:
+SuperLyric **always** listens to the system's `MediaSession`: it synchronises playback state and
+metadata, and broadcasts a stop to receivers when playback ends.
 
-```java
-public static void MusicAppDemo() {
-    SuperLyricHelper.setSystemPlayStateListenerEnabled(false);
-    // Then call sendStop(), setPlaybackState() yourself as needed.
-}
-```
+**There is nothing for an integrator to configure** — the per-app switch that used to disable this
+listener is no longer exposed.
 
 ---
 
@@ -255,11 +253,13 @@ public static void MusicAppDemo() {
 | `getPosition()`                  | Gets current playback timestamp in ms.                               |
 | `setLyricId(String)`             | Sets unique lyric fingerprint ID for caching & self-healing.         |
 | `getLyricId()`                   | Gets unique lyric ID.                                                |
-| `getCurrentLyric()`              | Smartly gets the current line (priority to single line, else index). |
 | `getPlayedLyrics()`              | Slices and returns list of already played history lines.             |
 | `getUpcomingLyrics()`            | Slices and returns list of upcoming future lines.                    |
 | `getLyricAt(int index)`          | Safely accesses lyric line at given index with bounds check.         |
 | `setExtra(Bundle)`               | Custom key-value data. Merges with any existing extras.              |
+| `isFullPayload()`                | Whether this packet is a full payload (carries the whole lyric).     |
+| `isDeltaPayload()`               | Whether this packet is a delta payload (index and current line only).|
+| `isStopPayload()`                | Whether this packet is a stop/empty payload (no full lyric, no current line). |
 
 Each field has a corresponding `hasXxx()` guard method (`hasAllLyrics()`, `hasDuration()`, etc.) —
 always

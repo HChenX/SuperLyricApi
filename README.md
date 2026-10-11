@@ -42,7 +42,7 @@ dependencyResolutionManagement {
 
 // build.gradle (app module)
 dependencies {
-    implementation 'com.github.HChenX:SuperLyricApi:3.6'
+    implementation 'com.github.HChenX:SuperLyricApi:3.7'
 }
 ```
 
@@ -71,8 +71,8 @@ public static void ModuleDemo() {
             long duration = data.getDuration(); // 歌曲总时长（毫秒）
             long position = data.getPosition(); // 当前播放进度（毫秒）
 
-            // 1. 获取当前播放的单行歌词（向下兼容单行场景与全曲切片）
-            SuperLyricLine currentLine = data.getCurrentLyric();
+            // 1. 当前播放行（单行通道：增量包为当前行，全量包为首行）
+            SuperLyricLine currentLine = data.getLyric();
             if (currentLine != null) {
                 String text = currentLine.getText();
                 long startTime = currentLine.getStartTime();
@@ -127,10 +127,15 @@ public static void ModuleDemo() {
 
 音乐应用在发送任何数据前必须注册为**发布者**。
 
-### 1. 检查服务可用性
+### 1. 检查服务可用性与版本
 
 ```java
 boolean available = SuperLyricHelper.isAvailable();
+
+// 可选：核对设备上安装的模块与本库版本是否匹配
+int libraryVersion = SuperLyricHelper.getApiVersion();      // 本库**编译时**的版本
+int serverVersion = SuperLyricHelper.getServerApiVersion(); // 服务端**实际实现**的版本
+// serverVersion == SuperLyricHelper.API_VERSION_UNKNOWN（-1）表示服务端过旧，不认识该查询
 ```
 
 ### 2. 注册为发布者
@@ -146,9 +151,10 @@ public static void MusicAppDemo() {
 
 ### 3. 发送歌词数据
 
-推荐使用 **全量包 + 增量进度包** 的传输优化策略：
+**音乐应用只需发布全量包。** 播放进度推进与行切换由 SuperLyric 的服务端时钟负责，
+跨行时会自动构造轻量增量包广播给接收端 —— 音乐应用不必、也不应插手进度。
 
-#### 3.1 切歌或歌词初次载入（发送全量包）
+#### 3.1 切歌或歌词初次载入（发布全量包）
 
 ```java
 public static void MusicAppDemo() {
@@ -161,13 +167,13 @@ public static void MusicAppDemo() {
         new SuperLyricLine("下一句歌词", null, "Next Line", null, 900, 2000),
     };
 
-    SuperLyricHelper.sendFullLyric(
+    SuperLyricHelper.sendLyric(
         new SuperLyricData()
             .setTitle("歌曲标题")
             .setArtist("艺术家名称")
             .setAlbum("专辑名称")
-            .setLyricId("song_unique_id") // 推荐设置唯一标识，便于接收端缓存与自愈
-            .setDuration(180000L) // 歌曲总时长（毫秒）
+            .setLyricId("song_unique_id") // 必填：会话标识，也是接收端缓存自愈的键
+            .setDuration(180000L) // 必填：服务端时钟插值的锚（缺失时服务端会尝试从系统元数据补齐）
             .setAllLyrics(allLines) // 整首歌曲所有行
             .setCurrentLyricIndex(0) // 当前播放行下标
             .setLyric(allLines[0]) // 兼容旧版本接收端
@@ -175,25 +181,17 @@ public static void MusicAppDemo() {
 }
 ```
 
-#### 3.2 播放中切行或进度推进（发送极轻量增量包）
+#### 3.2 播放中切行 / 进度推进
 
-播放中切行时无需重复传输庞大的 `allLyrics` 数组，仅需发送轻量点位更新：
-
-```java
-public static void onLineChanged(int newIndex, long currentPositionMs, SuperLyricLine currentLine) {
-    SuperLyricHelper.sendLyricProgress(
-        new SuperLyricData()
-            .setLyricId("song_unique_id")
-            .setCurrentLyricIndex(newIndex) // 当前行下标
-            .setPosition(currentPositionMs) // 当前毫秒进度
-            .setLyric(currentLine) // 兼容旧版接收端
-    );
-}
-```
+**不需要做任何事。** SuperLyric 收到全量包后，会在服务端按自己的时钟推算播放位置、
+判断当前行，并在跨行时自动向接收端广播增量包。应用侧重复推送进度只会造成两份时钟互相干扰。
 
 ### 4. 发送停止事件
 
-当播放暂停或停止时调用此方法。
+**默认无需手动调用。** SuperLyric 通过 `SystemPlayStateListener` 监听系统 `MediaSession`，
+播放器进入 `STOPPED` / `NONE` / `ERROR` 时会自动向接收端广播停止。请保持该监听处于启用状态。
+
+只有在您按 §6 关闭了系统监听时，才需要自行调用：
 
 ```java
 public static void MusicAppDemo() {
@@ -213,16 +211,11 @@ public static void MusicAppDemo() {
 }
 ```
 
-### 6. 系统播放状态监听器
+### 6. 关于系统播放状态
 
-默认情况下，SuperLyric 会监听系统的 `MediaSession` 事件，自动代为处理播放状态变化。如果您希望手动管理这些事件，可以禁用此功能：
+SuperLyric **恒常**监听系统 `MediaSession`，自动同步播放状态与元数据，并在播放结束时向接收端广播停止。
 
-```java
-public static void MusicAppDemo() {
-    SuperLyricHelper.setSystemPlayStateListenerEnabled(false);
-    // 然后根据需要自行调用 sendStop()、setPlaybackState()。
-}
-```
+**集成方无需、也无法配置这一行为** —— 按应用关闭监听的开关已不再对外开放。
 
 ---
 
@@ -250,11 +243,13 @@ public static void MusicAppDemo() {
 | `getPosition()`                  | 获取当前播放进度毫秒时间戳。                       |
 | `setLyricId(String)`             | 设置歌词唯一指纹标识（用于缓存自愈与增量包合成）。            |
 | `getLyricId()`                   | 获取歌词唯一标识。                            |
-| `getCurrentLyric()`              | 智能获取当前正在播放的歌词行（优先取单行，若无则从全量中提取）。     |
 | `getPlayedLyrics()`              | 提取已播放完毕的历史歌词行切片列表。                   |
 | `getUpcomingLyrics()`            | 提取未播放的未来歌词行切片列表。                     |
 | `getLyricAt(int index)`          | 安全获取指定下标的歌词行。                        |
 | `setExtra(Bundle)`               | 自定义键值对数据。会与任何已有的 extra 合并。           |
+| `isFullPayload()`                | 该包是否为全量包（携带整首歌词）。                   |
+| `isDeltaPayload()`               | 该包是否为增量包（仅携带点位与当前行）。                |
+| `isStopPayload()`                | 该包是否为停止/空包（既无整首歌词，也无当前行信息）。         |
 
 每个字段都有对应的 `hasXxx()` 检查方法（如 `hasAllLyrics()`、`hasDuration()` 等）—— 访问可选字段前请始终进行检查。
 

@@ -50,8 +50,8 @@ public class SuperLyricDemo {
                 long duration = data.getDuration(); // 歌曲总时长（毫秒）
                 long position = data.getPosition(); // 当前播放进度毫秒点位
 
-                // 1. 获取当前正在播放的单行歌词（兼容单行模式与全曲模式）
-                SuperLyricLine currentLine = data.getCurrentLyric();
+                // 1. 当前播放行（单行通道：增量包为当前行，全量包为首行）
+                SuperLyricLine currentLine = data.getLyric();
                 if (currentLine != null) {
                     String text = currentLine.getText();
                     long startTime = currentLine.getStartTime(); // 毫秒
@@ -109,15 +109,16 @@ public class SuperLyricDemo {
      */
     public static void MusicAppDemo() {
         SuperLyricHelper.isAvailable(); // 服务是否可用
-        SuperLyricHelper.getApiVersion(); // API 版本
+        SuperLyricHelper.getApiVersion(); // 本库编译时的 API 版本（不代表服务端版本）
 
         SuperLyricHelper.registerPublisher(); // 注册本应用为发布者，必须调用，否则会抛错
         SuperLyricHelper.unregisterPublisher(); // 主动注销发布者身份，可自行调用，也可交给系统自行控制
         SuperLyricHelper.isPublisherRegistered(); // 是否已经注册为发布者
 
-        // ======================== 传输优化策略 ========================
+        // ======================== 发布策略 ========================
+        // 只发布一次全量包。播放进度与行切换由 SuperLyric 的服务端时钟负责，
+        // 应用侧不需要、也不应该推送进度。
 
-        // 1. 歌曲初始化 / 切歌（发送全量包 Full Payload）
         SuperLyricLine[] allLines = new SuperLyricLine[]{
             new SuperLyricLine("你好世界", new SuperLyricWord[]{
                 new SuperLyricWord("你好", 0, 400),
@@ -126,36 +127,24 @@ public class SuperLyricDemo {
             new SuperLyricLine("下一句歌词", null, "Next Line", null, 900, 2000),
         };
 
-        SuperLyricHelper.sendFullLyric(
+        // 1. 歌曲初始化 / 切歌：发布整首歌词（唯一发布入口）
+        SuperLyricHelper.sendLyric(
             new SuperLyricData()
                 .setTitle("歌曲标题")
                 .setArtist("艺术家名称")
                 .setAlbum("专辑名称")
-                .setLyricId("song_1001") // 推荐设置唯一标识，便于接收端缓存与自愈
-                .setDuration(180000L) // 歌曲总时长（毫秒）
-                .setPosition(0L) // 当前播放进度（毫秒）
+                .setLyricId("song_1001") // 必填：会话标识，兼接收端缓存自愈的键
+                .setDuration(180000L) // 必填：服务端时钟插值的锚，缺失则进度无法推算
                 .setAllLyrics(allLines) // 整首歌曲的所有行
                 .setCurrentLyricIndex(0) // 当前播放行下标
                 .setLyric(allLines[0]) // 向下兼容旧版单行接收端
                 .setExtra(null) // 可选
         );
 
-        // 2. 播放进行中换行 / 进度更新（发送轻量增量包 Delta Payload）
-        // 关键优化：allLyrics 为 null，体积仅数百字节，避免 Binder 缓冲区溢出
-        SuperLyricHelper.sendLyricProgress(
-            new SuperLyricData()
-                .setLyricId("song_1001")
-                .setCurrentLyricIndex(1) // 当前行下标
-                .setPosition(950L) // 当前播放毫秒点位
-                .setLyric(allLines[1]) // 向下兼容旧版接收端
-        );
-
-        // 3. 停止播放
-        SuperLyricHelper.sendStop(
-            new SuperLyricData()
-        );
-
-        SuperLyricHelper.setSystemPlayStateListenerEnabled(false);
-        // 然后根据需要自行调用 sendStop()、setPlaybackState()。
+        // 2. 切歌时立刻清场（可选）
+        // 需要马上抹掉上一首的歌词、不等系统播放状态回调时才调用。
+        // 日常的播放停止**无需**处理：SuperLyric 监听系统 MediaSession，
+        // 播放器进入 STOPPED / NONE / ERROR 时会自动向接收端广播 onStop。
+        // SuperLyricHelper.sendStop(new SuperLyricData());
     }
 }

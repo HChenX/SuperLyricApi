@@ -98,18 +98,22 @@ public final class SuperLyricCache {
         // 3. 缓存未命中
         // 自动向常驻系统服务拉取当前正在播放的全量数据进行自愈
         if (cached == null) {
+            SuperLyricData remoteLatest = null;
             try {
-                SuperLyricData remoteLatest = SuperLyricHelper.getLatestLyric();
-                if (remoteLatest != null && remoteLatest.hasAllLyrics()) {
-                    put(remoteLatest);
-                    // 如果拉取到的全量数据与当前增量包匹配（ID 或 标题一致）
-                    if ((incoming.hasLyricId() && incoming.getLyricId().equals(remoteLatest.getLyricId()))
-                        || (incoming.hasTitle() && incoming.getTitle().equals(remoteLatest.getTitle()))) {
-                        cached = remoteLatest;
-                    }
-                }
+                remoteLatest = SuperLyricHelper.getLatestLyric();
             } catch (Throwable ignore) {
                 // 服务端不可用或版本不支持主动拉取时平稳降级
+            }
+            if (remoteLatest != null && remoteLatest.hasAllLyrics()) {
+                put(remoteLatest);
+                // 拉取到的必须是**同一首曲目**才可用（ID 或 标题一致）
+                boolean sameTrack = (incoming.hasLyricId() && incoming.getLyricId().equals(remoteLatest.getLyricId()))
+                    || (incoming.hasTitle() && incoming.getTitle().equals(remoteLatest.getTitle()));
+                if (sameTrack) {
+                    // 服务端返回的 `session.latestLyric` 本就是「全量 + 当前行」的合成结果，
+                    // 直接采信即可，不要再走一遍下方的合并
+                    return remoteLatest;
+                }
             }
         }
 
@@ -133,7 +137,11 @@ public final class SuperLyricCache {
 
         // 全量歌词引用
         resolved.setAllLyrics(cached.getAllLyrics());
-        resolved.setCurrentLyricIndex(incoming.getCurrentLyricIndex());
+        // 下标必须带守卫：增量包未携带下标时，getCurrentLyricIndex() 返回哨兵值 -1，
+        // 会覆盖缓存里正确的下标，接收端随后 getLyricAt(-1) 直接取不到当前行
+        resolved.setCurrentLyricIndex(incoming.hasCurrentLyricIndex()
+            ? incoming.getCurrentLyricIndex()
+            : cached.getCurrentLyricIndex());
 
         // 单行当前歌词（优先取 incoming；若无则自动根据 index 从 allLyrics 中提取）
         if (incoming.hasLyric()) {
@@ -149,7 +157,7 @@ public final class SuperLyricCache {
         if (incoming.hasTranslation()) {
             resolved.setTranslation(incoming.getTranslation());
         } else {
-            SuperLyricLine currentLine = resolved.getCurrentLyric();
+            SuperLyricLine currentLine = resolved.getLyric();
             if (currentLine != null && currentLine.hasTranslation()) {
                 resolved.setTranslation(currentLine.getTranslationLine());
             }
@@ -158,7 +166,7 @@ public final class SuperLyricCache {
         if (incoming.hasSecondary()) {
             resolved.setSecondary(incoming.getSecondary());
         } else {
-            SuperLyricLine currentLine = resolved.getCurrentLyric();
+            SuperLyricLine currentLine = resolved.getLyric();
             if (currentLine != null && currentLine.hasSecondary()) {
                 resolved.setSecondary(currentLine.getSecondaryLine());
             }
@@ -181,16 +189,15 @@ public final class SuperLyricCache {
             return;
         }
 
-        String lyricId = data.getLyricId();
-        if (lyricId == null || lyricId.isEmpty()) {
-            lyricId = buildMetaKey(data.getTitle(), data.getArtist());
-            data.setLyricId(lyricId);
-        }
+        // 不把合成的 key 回写进 data：那是对调用方入参的副作用
+        String storedKey = data.hasLyricId()
+            ? data.getLyricId()
+            : buildMetaKey(data.getTitle(), data.getArtist());
 
         synchronized (sLock) {
-            sLyricCache.put(lyricId, data);
+            sLyricCache.put(storedKey, data);
             if (data.hasTitle()) {
-                sMetaToIdIndex.put(buildMetaKey(data.getTitle(), data.getArtist()), lyricId);
+                sMetaToIdIndex.put(buildMetaKey(data.getTitle(), data.getArtist()), storedKey);
             }
         }
     }
