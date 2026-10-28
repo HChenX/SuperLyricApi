@@ -3,16 +3,8 @@
  *
  * SuperLyricApi is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * SuperLyricApi is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with SuperLyricApi. If not, see <https://www.gnu.org/licenses/lgpl-2.1>.
  *
  * Copyright (C) 2025–2026 HChenX
  */
@@ -29,12 +21,13 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * 歌词行数据
- * <p>
- * 我们将使用此数据包实现歌词行数据的传递
+ * 3.x 的歌词行。
  *
  * @author 焕晨HChen
+ * @deprecated 自 4.0 起仅用于 {@code legacy/} 投影器。新代码请使用
+ * {@link com.hchen.superlyricapi.model.Line}。parcel 布局已冻结。
  */
+@Deprecated(since = "4.0")
 public class SuperLyricLine implements Parcelable {
     /**
      * 当前行文本
@@ -110,7 +103,7 @@ public class SuperLyricLine implements Parcelable {
     }
 
     /**
-     * 请使用 {@link SuperLyricLine#SuperLyricLine(String, long, long)}
+     * @deprecated 请使用 {@link SuperLyricLine#SuperLyricLine(String, long, long)}
      */
     @Deprecated(since = "3.2")
     public SuperLyricLine(@NonNull String text, long delay) {
@@ -120,7 +113,7 @@ public class SuperLyricLine implements Parcelable {
     }
 
     /**
-     * 请使用 {@link SuperLyricLine#SuperLyricLine(String, SuperLyricWord[], long, long)}
+     * @deprecated 请使用 {@link SuperLyricLine#SuperLyricLine(String, SuperLyricWord[], long, long)}
      */
     @Deprecated(since = "3.2")
     public SuperLyricLine(@NonNull String text, @Nullable SuperLyricWord[] words, long delay) {

@@ -3,16 +3,8 @@
  *
  * SuperLyricApi is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * SuperLyricApi is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with SuperLyricApi. If not, see <https://www.gnu.org/licenses/lgpl-2.1>.
  *
  * Copyright (C) 2025–2026 HChenX
  */
@@ -27,30 +19,23 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * 逐字歌词数据信息
- * <p>
- * 我们将通过此数据包实现对逐字歌词的支持
+ * 3.x 的逐字数据。
  *
  * @author 焕晨HChen
+ * @deprecated 自 4.0 起仅用于 {@code legacy/} 投影器。新代码请使用
+ * {@link com.hchen.superlyricapi.model.Word}。parcel 布局已冻结。
  */
+@Deprecated(since = "4.0")
 public class SuperLyricWord implements Parcelable {
     /**
-     * 单词
-     * <p>
-     * 我们将使用此字段传递当前歌词的某个单词数据
+     * 单词文本。
      */
     @NonNull
     private String word = "";
     /**
-     * 持续时间 (毫秒)
-     * <p>
-     * 当前单词的持续时间
-     * <p>
-     * 为了方便传递着使用，我们改用传递单词开始与结束时间来倒推当前单词的持续时间
-     * <p>
-     * 您依然可以使用此字段传递持续时间，我们也推荐使用 {@link SuperLyricWord#getDelay()} 来获取持续时间
+     * 持续时间，毫秒。
      *
-     * @deprecated
+     * @deprecated 由开始与结束时间推算。
      */
     @Deprecated(since = "2.7")
     private long delay = 0L;
@@ -71,7 +56,7 @@ public class SuperLyricWord implements Parcelable {
     }
 
     /**
-     * 请使用 {@link SuperLyricWord#SuperLyricWord(String, long, long)}
+     * @deprecated 请使用 {@link SuperLyricWord#SuperLyricWord(String, long, long)}
      */
     @Deprecated(since = "2.7")
     public SuperLyricWord(@NonNull String word, long delay) {

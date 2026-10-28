@@ -3,36 +3,25 @@
  *
  * SuperLyricApi is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * SuperLyricApi is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with SuperLyricApi. If not, see <https://www.gnu.org/licenses/lgpl-2.1>.
  *
  * Copyright (C) 2025–2026 HChenX
  */
 // ISuperLyricReceiver.aidl
 package com.hchen.superlyricapi;
 
-// Declare any non-default types here with import statements
 import com.hchen.superlyricapi.SuperLyricData;
 
+/**
+ * 3.x 接收器接口。
+ *
+ * <p>已冻结，仅用于兼容 3.x 客户端。
+ */
 interface ISuperLyricReceiver {
-    /**
-     * Demonstrates some basic types that you can use as parameters
-     * and return values in AIDL.
-     */
-    // void basicTypes(int anInt, long aLong, boolean aBoolean, float aFloat,
-    //          double aDouble, String aString);
-
-    // 接收数据时调用
+    // 收到歌词数据
     void onLyric(in String publisher, in SuperLyricData data);
 
-    // 播放暂停时调用
+    // 收到停止事件
     void onStop(in String publisher, in SuperLyricData data);
 }

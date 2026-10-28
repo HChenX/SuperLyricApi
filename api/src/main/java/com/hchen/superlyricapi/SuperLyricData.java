@@ -3,16 +3,8 @@
  *
  * SuperLyricApi is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * SuperLyricApi is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with SuperLyricApi. If not, see <https://www.gnu.org/licenses/lgpl-2.1>.
  *
  * Copyright (C) 2025–2026 HChenX
  */
@@ -35,10 +27,15 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 歌词数据
+ * 3.x 的线上数据模型。
+ *
+ * <p>Parcel 布局已冻结，修改字段顺序或类型会导致旧客户端解析错位。
  *
  * @author 焕晨HChen
+ * @deprecated 仅用于 {@code legacy/} 中的格式转换。新代码请使用
+ * {@link com.hchen.superlyricapi.model.Lyric}。
  */
+@Deprecated(since = "4.0")
 public class SuperLyricData implements Parcelable {
     private static final String TAG = "SuperLyricData";
 
@@ -69,28 +66,20 @@ public class SuperLyricData implements Parcelable {
     private SuperLyricLine translation = null;
 
     /**
-     * 当前歌曲的 MediaMetadata 数据
-     * <p>
-     * 此参数已被废弃，仅作为占位存在，用以保证 API 稳定性
+     * 已废弃，仅作为占位字段。
      */
     @Deprecated(since = "3.3")
     private MediaMetadata mediaMetadata = null;
     /**
-     * 当前的播放状态
-     * <p>
-     * 此参数已被废弃，仅作为占位存在，用以保证 API 稳定性
+     * 已废弃，仅作为占位字段。
      */
     @Deprecated(since = "3.3")
     private PlaybackState playbackState = null;
 
     /**
-     * 音乐软件的图标
-     * <p>
-     * Note：用途有限，要求传递方提供 Base64 样式的 Icon 不现实
-     * <p>
-     * 如果愿意您依然可以使用此方法传递 Base64 样式的 Icon
+     * 应用图标，Base64 编码。
      *
-     * @deprecated
+     * @deprecated 不再使用。
      */
     @Deprecated(since = "1.8")
     private String base64Icon = null;
@@ -361,7 +350,7 @@ public class SuperLyricData implements Parcelable {
     /**
      * 设置当前播放行下标，从 0 开始
      *
-     * @param currentLyricIndex 行下标；小于 -1 的值无意义，会被归一化为 -1（即"未设置"）
+     * @param currentLyricIndex 行下标；小于 -1 时归一化为 -1
      */
     public SuperLyricData setCurrentLyricIndex(int currentLyricIndex) {
         if (currentLyricIndex < -1) {
@@ -389,7 +378,7 @@ public class SuperLyricData implements Parcelable {
     /**
      * 设置当前播放进度
      *
-     * @param position 播放进度毫秒；小于 -1 的值无意义，会被归一化为 -1（即"未设置"）
+     * @param position 播放进度，毫秒；小于 -1 时归一化为 -1
      */
     public SuperLyricData setPosition(long position) {
         if (position < -1L) {
@@ -531,7 +520,6 @@ public class SuperLyricData implements Parcelable {
         );
     }
 
-    @SuppressWarnings("deprecation")
     private static boolean extrasEqual(@Nullable Bundle a, @Nullable Bundle b) {
         if (a == b) return true;
         if (a == null || b == null) return false;
@@ -544,7 +532,6 @@ public class SuperLyricData implements Parcelable {
         return true;
     }
 
-    @SuppressWarnings("deprecation")
     private static int extrasHash(@Nullable Bundle bundle) {
         if (bundle == null) return 0;
         int hash = 0;
@@ -611,7 +598,7 @@ public class SuperLyricData implements Parcelable {
             }
         }
 
-        // 兼容镜像：旧版发布端把翻译/副歌词放在 Data 上，此时行内为空 —— 读取时写回当前行
+        // 旧版数据可能把翻译与副歌词放在 Data 上，读取时写回当前行
         if (lyric != null) {
             if (translation != null && (lyric.getTranslation() == null || lyric.getTranslation().isEmpty())) {
                 lyric.setTranslation(translation.getText());

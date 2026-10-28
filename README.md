@@ -6,29 +6,28 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/HChenX/SuperLyricApi)](https://github.com/HChenX/SuperLyricApi/releases)
 [![GitHub Release Date](https://img.shields.io/github/release-date/HChenX/SuperLyricApi)](https://github.com/HChenX/SuperLyricApi/releases)
 ![last commit](https://img.shields.io/github/last-commit/HChenX/SuperLyricApi?style=flat)
+![language](https://img.shields.io/badge/language-kotlin-purple)
 ![language](https://img.shields.io/badge/language-java-purple)
-![language](https://img.shields.io/badge/language-aidl-purple)
 
 <p><b><a href="README-en.md">English</a> | <a href="README.md">简体中文</a></b></p>
-<p>基于 Binder 的轻量级 Android API，用于广播和接收实时歌词。</p>
+<p>基于 Binder 的 Android 歌词传输接口。</p>
 </div>
 
 ---
 
-## ✨ 概述
+## 概述
 
-SuperLyricApi 提供了简洁、轻量的接口，使得：
+SuperLyricApi 在音乐应用与系统服务之间传递歌词。
 
-- **音乐应用** 可以将实时歌词数据（文本、逐字时间、翻译、播放状态等）发布到系统级服务。
-- **Xposed 模块** 可以从系统服务中接收这些歌词数据。
+音乐应用发布一次完整歌词，包含行文本、逐字时间、翻译与副歌词。系统服务负责对齐播放进度，并在歌词行或播放状态变化时向接收端推送。
 
-所有通信均通过 AIDL 基于 Binder 完成，快速且进程安全，并与基于 Xposed 的模块架构完美兼容。
+播放进度、暂停状态与倍速由系统从 MediaSession 读取，发布方不参与。
 
----
+通信基于 Binder，数据结构为自描述的字节流，新增字段不影响已有的接收端。
 
-## ✨ 添加依赖
+API 由 Kotlin 实现，Java 调用方式不变；内部实现使用 internal 可见性，不对外暴露。
 
-将 JitPack 仓库和库依赖添加到您的项目中：
+## 添加依赖
 
 ```groovy
 // settings.gradle
@@ -42,283 +41,169 @@ dependencyResolutionManagement {
 
 // build.gradle (app module)
 dependencies {
-    implementation 'com.github.HChenX:SuperLyricApi:3.7'
+    implementation 'com.github.HChenX:SuperLyricApi:4.0'
 }
 ```
 
-同步项目后即可使用该 API。
+## 发布端
 
----
+一首歌调用一次 `publish()`，切歌时再次调用。
 
-## 🛠 Xposed 模块使用指南 — 接收歌词
+Kotlin：
 
-注册 `ISuperLyricReceiver` 用以接收歌词事件。推荐使用 `SuperLyricCache.resolve(data)`
-一键自动处理全量与增量包合成及断档自愈。
+```kotlin
+val lines = listOf(
+    Line(
+        "你好世界", 0, 900,
+        listOf(Word("你好", 0, 400), Word("世界", 400, 900)),
+        "Hello World",
+        "Ni Hao Shi Jie",
+    ),
+    Line("下一句歌词", 900, 2000),
+)
 
-```java
-public static void ModuleDemo() {
-    ISuperLyricReceiver.Stub receiver;
-    SuperLyricHelper.registerReceiver(receiver = new ISuperLyricReceiver.Stub() {
-        @Override
-        public void onLyric(String publisher, SuperLyricData rawData) throws RemoteException {
-            // 推荐：使用 SuperLyricCache.resolve 自动合成增量包与全量歌词，并支持被杀重启自愈
-            SuperLyricData data = SuperLyricCache.resolve(rawData);
-            if (data == null) return;
+val doc = Lyric("song_1001", 180_000L, lines, "歌曲标题", "艺术家名称", "专辑名称")
 
-            String title = data.getTitle();
-            String artist = data.getArtist();
-            String album = data.getAlbum();
-            long duration = data.getDuration(); // 歌曲总时长（毫秒）
-            long position = data.getPosition(); // 当前播放进度（毫秒）
-
-            // 1. 当前播放行（单行通道：增量包为当前行，全量包为首行）
-            SuperLyricLine currentLine = data.getLyric();
-            if (currentLine != null) {
-                String text = currentLine.getText();
-                long startTime = currentLine.getStartTime();
-                long endTime = currentLine.getEndTime();
-                String translation = currentLine.getTranslation(); // 当前行翻译
-                String secondary = currentLine.getSecondary(); // 当前行罗马音/副歌词
-
-                // 逐字（卡拉OK）数据
-                SuperLyricWord[] words = currentLine.getWords();
-                if (words != null) {
-                    for (SuperLyricWord word : words) {
-                        String wordText = word.getWord();
-                        long wordStart = word.getStartTime();
-                        long wordEnd = word.getEndTime();
-                    }
-                }
-            }
-
-            // 2. 获取整首歌曲的所有歌词数据（支持列表渲染、多行滚动展示）
-            if (data.hasAllLyrics()) {
-                SuperLyricLine[] allLines = data.getAllLyrics(); // 整首歌所有行
-                int currentIndex = data.getCurrentLyricIndex(); // 当前行在整首歌曲中的下标
-
-                // 3. 点位切片：瞬间获取已播放完毕和尚未播放的歌词行
-                List<SuperLyricLine> played = data.getPlayedLyrics(); // 已播放历史行
-                List<SuperLyricLine> upcoming = data.getUpcomingLyrics(); // 未播放未来行
-            }
-
-            if (data.hasExtra()) {
-                Bundle extra = data.getExtra();
-            }
-        }
-
-        @Override
-        public void onStop(String publisher, SuperLyricData data) throws RemoteException {
-            // 当发布者暂停播放或其进程终止时调用
-        }
-    });
-
-    // 主动拉取：若模块冷启动或悬浮窗开启，可直接主动获取当前播放歌曲的全量数据
-    SuperLyricData currentPlaying = SuperLyricHelper.getLatestLyric();
-
-    // 查询注册状态或完成后取消注册
-    boolean registered = SuperLyricHelper.isReceiverRegistered(receiver);
-    SuperLyricHelper.unregisterReceiver(receiver);
+when (SuperLyric.publisher().publish(doc)) {
+    Publisher.PublishResult.OK -> Unit
+    Publisher.PublishResult.SERVICE_UNAVAILABLE -> Unit
+    Publisher.PublishResult.PAYLOAD_TOO_LARGE -> Unit
+    Publisher.PublishResult.REJECTED -> Unit
 }
 ```
 
----
-
-## 🔧 音乐应用使用指南 — 发布歌词
-
-音乐应用在发送任何数据前必须注册为**发布者**。
-
-### 1. 检查服务可用性与版本
+Java：
 
 ```java
-boolean available = SuperLyricHelper.isAvailable();
+List<Line> lines = new ArrayList<>();
+lines.add(new Line("你好世界", 0, 900,
+        Arrays.asList(new Word("你好", 0, 400), new Word("世界", 400, 900)),
+        "Hello World", "Ni Hao Shi Jie"));
+lines.add(new Line("下一句歌词", 900, 2000, null, "Next Line", null));
 
-// 可选：核对设备上安装的模块与本库版本是否匹配
-int libraryVersion = SuperLyricHelper.getApiVersion();      // 本库**编译时**的版本
-int serverVersion = SuperLyricHelper.getServerApiVersion(); // 服务端**实际实现**的版本
-// serverVersion == SuperLyricHelper.API_VERSION_UNKNOWN（-1）表示服务端过旧，不认识该查询
-```
+Lyric doc = new Lyric("song_1001", 180_000L, lines, "歌曲标题", "艺术家名称", "专辑名称");
 
-### 2. 注册为发布者
-
-在应用启动时调用一次（例如在 `onCreate` 中）。如果跳过此步骤，发布操作将抛出
-`IllegalStateException`。
-
-```java
-public static void MusicAppDemo() {
-    SuperLyricHelper.registerPublisher();
+Publisher.PublishResult result = SuperLyric.publisher().publish(doc);
+if (result != Publisher.PublishResult.OK) {
+    // SERVICE_UNAVAILABLE / PAYLOAD_TOO_LARGE / REJECTED
 }
 ```
 
-### 3. 发送歌词数据
+| 字段 | 要求 | 说明 |
+|---|---|---|
+| `lyricId` | 必填 | 曲目标识，接收端按此区分缓存 |
+| `duration` | 必填，大于 0 | 用于把歌词时间轴对齐到播放进度 |
+| `lines`，每行 `start` 与 `end` | 必填 | 行时间决定当前行的计算 |
+| `title`、`artist`、`album` | 选填 | 用于显示与服务端曲目校验 |
+| `words`、`translation`、`secondary` | 选填 | 缺省时按整行或无翻译处理 |
 
-**音乐应用只需发布全量包。** 播放进度推进与行切换由 SuperLyric 的服务端时钟负责，
-跨行时会自动构造轻量增量包广播给接收端 —— 音乐应用不必、也不应插手进度。
+`lyricId`、`duration`、`lines` 由 `Lyric` 构造器校验，取值非法时抛出 `IllegalArgumentException`（Java 传入 null 时由空值检查先行拦截）。
 
-#### 3.1 切歌或歌词初次载入（发布全量包）
+切歌时无需清理旧数据，系统检测到播放曲目变化后会自行处理。仅在需要立即清除时才调用 `SuperLyric.publisher().clear()`。
+
+## 接收端
+
+Kotlin：
+
+```kotlin
+SuperLyric.receiver().register(object : LyricListener {
+    override fun onLyric(view: LyricView) {
+        val lyric = view.lyric
+        val line = view.line
+        val index = view.index
+        val position = view.position
+        val speed = view.speed
+        val state = view.state
+    }
+
+    override fun onStop(stop: Stop) {
+        val reason = stop.reason
+    }
+})
+
+val current = SuperLyric.receiver().latest()
+
+SuperLyric.receiver().unregister()
+```
+
+Java：
 
 ```java
-public static void MusicAppDemo() {
-    // 构造整首歌曲的所有行
-    SuperLyricLine[] allLines = new SuperLyricLine[]{
-        new SuperLyricLine("你好世界", new SuperLyricWord[]{
-            new SuperLyricWord("你好", 0, 400),
-            new SuperLyricWord("世界", 400, 900),
-        }, "Hello World", "Ni Hao Shi Jie", 0, 900),
-        new SuperLyricLine("下一句歌词", null, "Next Line", null, 900, 2000),
-    };
+SuperLyric.receiver().register(new LyricListener() {
+    @Override
+    public void onLyric(LyricView view) {
+        Lyric doc = view.getLyric();
+        Line line = view.getLine();
+        int index = view.getIndex();
+        long position = view.getPosition();
 
-    SuperLyricHelper.sendLyric(
-        new SuperLyricData()
-            .setTitle("歌曲标题")
-            .setArtist("艺术家名称")
-            .setAlbum("专辑名称")
-            .setLyricId("song_unique_id") // 必填：会话标识，也是接收端缓存自愈的键
-            .setDuration(180000L) // 必填：服务端时钟插值的锚（缺失时服务端会尝试从系统元数据补齐）
-            .setAllLyrics(allLines) // 整首歌曲所有行
-            .setCurrentLyricIndex(0) // 当前播放行下标
-            .setLyric(allLines[0]) // 兼容旧版本接收端
-    );
-}
+        List<Line> played = view.getPlayed();
+        List<Line> upcoming = view.getUpcoming();
+    }
+
+    @Override
+    public void onStop(Stop stop) {
+        // PAUSED / STOPPED / ERROR / PROCESS_DIED / CLEARED
+    }
+});
+
+LyricView current = SuperLyric.receiver().latest();
+SuperLyric.receiver().unregister();
 ```
 
-#### 3.2 播放中切行 / 进度推进
+回调在 binder 线程执行。回调中抛出的异常会被捕获并记录，不影响其他接收端。
 
-**不需要做任何事。** SuperLyric 收到全量包后，会在服务端按自己的时钟推算播放位置、
-判断当前行，并在跨行时自动向接收端广播增量包。应用侧重复推送进度只会造成两份时钟互相干扰。
+`position` 是推送时刻的快照。需要连续更新时，可结合 `SystemClock.elapsedRealtime()` 与 `speed` 在本地推算。
 
-### 4. 发送停止事件
+## API
 
-**默认无需手动调用。** SuperLyric 通过 `SystemPlayStateListener` 监听系统 `MediaSession`，
-播放器进入 `STOPPED` / `NONE` / `ERROR` 时会自动向接收端广播停止。请保持该监听处于启用状态。
+| 类型 | 说明 |
+|---|---|
+| `SuperLyric` | 入口，提供 `isAvailable()`、`publisher()`、`receiver()` |
+| `Publisher` | `publish(Lyric)`、`clear()` |
+| `Receiver` | `register(LyricListener)`、`unregister()`、`latest()` |
+| `LyricListener` | `onLyric(LyricView)`、`onStop(Stop)` |
+| `LyricView` | 合成后的视图：歌词文档、当前行、进度、倍速、播放状态 |
+| `Lyric`、`Line`、`Word` | 歌词数据模型，只读 |
+| `State`、`Stop` | 系统下发的状态与停止事件 |
+| `PublishResult`、`RegisterResult` | 调用结果 |
 
-只有在您按 §6 关闭了系统监听时，才需要自行调用：
+## 兼容性
 
-```java
-public static void MusicAppDemo() {
-    SuperLyricHelper.sendStop(
-        new SuperLyricData()
-    );
-}
+4.0 重写了源码 API，线上协议保持兼容。
+
+新旧接口各使用独立的服务名（`super_lyric.v4` 与 `super_lyric`），可以任意组合：
+
+| 客户端 | 服务端 | 结果 |
+|---|---|---|
+| 4.0 | 4.0 | 完整功能 |
+| 4.0 | 3.x | 发布时转换为 3.x 格式，接收时转换回 4.0 模型；无倍速与停止原因 |
+| 3.x | 4.0 | 服务端按 3.x 格式下发 |
+| 3.x | 3.x | 不变 |
+
+客户端通过 `super_lyric.v4` 是否存在判断服务端能力，不使用版本号。
+
+## 扩展字段
+
+在模型类上添加带 `@Wire` 注解的字段即可，无需修改编解码、AIDL 或兼容层：
+
+```kotlin
+@field:Wire(7)
+var romanization: String? = null
+    private set
 ```
 
-### 5. 取消注册（可选）
+字段号在同一类内唯一，只能新增，不能修改或复用。新增字段时需同步更新 `api/src/test/resources/wire-ids.txt`，`SchemaIdTest` 会校验这份快照。
 
-系统会在应用进程终止时自动清理发布者注册。您也可以主动取消注册：
+## 构建与测试
 
-```java
-public static void MusicAppDemo() {
-    SuperLyricHelper.unregisterPublisher();
-}
+```bash
+./gradlew :api:test
+./gradlew :api:assembleRelease :app:assembleDebug
 ```
 
-### 6. 关于系统播放状态
+AAR 自带 `consumer-rules.pro`，使用方无需手动添加 ProGuard 规则。
 
-SuperLyric **恒常**监听系统 `MediaSession`，自动同步播放状态与元数据，并在播放结束时向接收端广播停止。
-
-**集成方无需、也无法配置这一行为** —— 按应用关闭监听的开关已不再对外开放。
-
----
-
-## 📦 数据模型参考
-
-### `SuperLyricData`
-
-| 方法                               | 描述                                   |
-|----------------------------------|--------------------------------------|
-| `setTitle(String)`               | 歌曲标题。                                |
-| `setArtist(String)`              | 艺术家名称。                               |
-| `setAlbum(String)`               | 专辑名称。                                |
-| `setLyric(SuperLyricLine)`       | 主歌词行（单行模式或当前行）。                      |
-| `setSecondary(SuperLyricLine)`   | 副歌词行（例如罗马音）。                         |
-| `setTranslation(SuperLyricLine)` | 主歌词的翻译。                              |
-| `setAllLyrics(SuperLyricLine[])` | 设置整首歌曲的所有歌词行。                        |
-| `getAllLyrics()`                 | 获取整首歌曲的所有歌词行。                        |
-| `getAllLyricsList()`             | 以 `List<SuperLyricLine>` 形式获取整首歌所有行。 |
-| `getAllLyricsCount()`            | 获取整首歌总行数。                            |
-| `setCurrentLyricIndex(int)`      | 设置当前正在播放的行下标（从 0 开始）。                |
-| `getCurrentLyricIndex()`         | 获取当前播放行下标。                           |
-| `setDuration(long)`              | 设置歌曲总时长（毫秒）。                         |
-| `getDuration()`                  | 获取歌曲总时长（毫秒）。                         |
-| `setPosition(long)`              | 设置当前播放进度毫秒时间戳。                       |
-| `getPosition()`                  | 获取当前播放进度毫秒时间戳。                       |
-| `setLyricId(String)`             | 设置歌词唯一指纹标识（用于缓存自愈与增量包合成）。            |
-| `getLyricId()`                   | 获取歌词唯一标识。                            |
-| `getPlayedLyrics()`              | 提取已播放完毕的历史歌词行切片列表。                   |
-| `getUpcomingLyrics()`            | 提取未播放的未来歌词行切片列表。                     |
-| `getLyricAt(int index)`          | 安全获取指定下标的歌词行。                        |
-| `setExtra(Bundle)`               | 自定义键值对数据。会与任何已有的 extra 合并。           |
-| `isFullPayload()`                | 该包是否为全量包（携带整首歌词）。                   |
-| `isDeltaPayload()`               | 该包是否为增量包（仅携带点位与当前行）。                |
-| `isStopPayload()`                | 该包是否为停止/空包（既无整首歌词，也无当前行信息）。         |
-
-每个字段都有对应的 `hasXxx()` 检查方法（如 `hasAllLyrics()`、`hasDuration()` 等）—— 访问可选字段前请始终进行检查。
-
-### `SuperLyricLine`
-
-表示单行歌词。
-
-| 构造函数                                                                        | 描述            |
-|-----------------------------------------------------------------------------|---------------|
-| `SuperLyricLine(text)`                                                      | 仅文本。          |
-| `SuperLyricLine(text, startTime, endTime)`                                  | 文本及行时间。       |
-| `SuperLyricLine(text, words[], startTime, endTime)`                         | 文本、逐字及行时间。    |
-| `SuperLyricLine(text, words[], translation, startTime, endTime)`            | 文本、逐字、翻译及行时间。 |
-| `SuperLyricLine(text, words[], translation, secondary, startTime, endTime)` | 包含全部信息的完整行。   |
-
-| 方法                     | 返回值                           | 描述           |
-|------------------------|-------------------------------|--------------|
-| `getText()`            | `String`（`@NonNull`）          | 行文本          |
-| `getStartTime()`       | `long`                        | 行开始时间（毫秒）    |
-| `getEndTime()`         | `long`                        | 行结束时间（毫秒）    |
-| `getWords()`           | `SuperLyricWord[]`，可能为 `null` | 逐字（卡拉OK）数组   |
-| `getTranslation()`     | `String`，可能为 `null`           | 当前行翻译文本      |
-| `getSecondary()`       | `String`，可能为 `null`           | 当前行副歌词/罗马音   |
-| `getTranslationLine()` | `SuperLyricLine`，可能为 `null`   | 包装为单行对象的翻译歌词 |
-| `getSecondaryLine()`   | `SuperLyricLine`，可能为 `null`   | 包装为单行对象的副歌词  |
-
-### `SuperLyricCache`
-
-提供基于线程安全 LRU 策略的全量歌词缓存、增量包智能合成及被杀重启自愈功能。避免暴力清空引发的数据抖动。
-
-| 方法                                      | 描述                                                |
-|-----------------------------------------|---------------------------------------------------|
-| `SuperLyricCache.resolve(incomingData)` | 传入收到的数据包，自动完成增量合成或自愈拉取，返回完备的 `SuperLyricData` 视图。 |
-| `SuperLyricCache.put(data)`             | 将全量数据手动放入缓存。                                      |
-| `SuperLyricCache.get(lyricId)`          | 获取缓存的全量数据。                                        |
-| `SuperLyricCache.clear()`               | 清空本地缓存。                                           |
-
-### `SuperLyricWord`
-
-表示歌词行内的单个单词，用于卡拉 OK 风格的逐字高亮。
-
-| 构造函数                                       | 描述  |
-|--------------------------------------------|-----|
-| `SuperLyricWord(word, startTime, endTime)` | 逐字。 |
-
-| 方法               | 返回值              |
-|------------------|------------------|
-| `getWord()`      | 单词文本（`@NonNull`） |
-| `getStartTime()` | 单词开始时间（毫秒）       |
-| `getEndTime()`   | 单词结束时间（毫秒）       |
-
----
-
-## 🌟 ProGuard / R8
-
-强烈建议保持所有 API 类不被混淆：
-
-```proguard
--keep class com.hchen.superlyricapi.* {*;}
-```
-
----
-
-## 📢 歌词获取器
+## 相关项目
 
 - [SuperLyric](https://github.com/HChenX/SuperLyric)
-
----
-
-## 🎉 结语
-
-💖 **感谢您的支持，Enjoy your day!** 🚀

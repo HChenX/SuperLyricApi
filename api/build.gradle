@@ -1,21 +1,31 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.library)
     id 'maven-publish'
 }
 
-def defVersionName = '3.7'
-def defVersionCode = 37
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_21
+        freeCompilerArgs.add("-jvm-default=enable")
+    }
+}
+
+def defVersionName = '4.0'
+def defVersionCode = 40
 
 android {
     namespace 'com.hchen.superlyricapi'
     compileSdk {
-        version = release(36)
+        version = release(37)
     }
 
     defaultConfig {
         minSdk 26
-        targetSdk 36
+        targetSdk 37
 
+        consumerProguardFiles 'consumer-rules.pro'
         aarMetadata {
             minCompileSdk = 26
         }
@@ -39,10 +49,15 @@ android {
         targetCompatibility JavaVersion.VERSION_21
     }
 
+    testOptions {
+        unitTests {
+            returnDefaultValues = true
+        }
+    }
+
     publishing {
         singleVariant("release") {
             withSourcesJar()
-            withJavadocJar()
         }
     }
 
@@ -75,11 +90,14 @@ android {
 
 tasks.register('androidSourcesJar', Jar) {
     from android.sourceSets.main.java.srcDirs
+    from 'src/main/kotlin'
 }
 
 dependencies {
     compileOnly project(':hidden-api')
     implementation libs.annotation
+
+    testImplementation libs.junit
 }
 
 afterEvaluate {

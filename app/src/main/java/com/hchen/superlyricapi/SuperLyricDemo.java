@@ -3,148 +3,110 @@
  *
  * SuperLyricApi is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * SuperLyricApi is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with SuperLyricApi. If not, see <https://www.gnu.org/licenses/lgpl-2.1>.
  *
  * Copyright (C) 2025–2026 HChenX
  */
 package com.hchen.superlyricapi;
 
-import android.os.Bundle;
-import android.os.RemoteException;
+import com.hchen.superlyricapi.model.Line;
+import com.hchen.superlyricapi.model.Lyric;
+import com.hchen.superlyricapi.model.PlaybackState;
+import com.hchen.superlyricapi.model.Stop;
+import com.hchen.superlyricapi.model.Word;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
- * SuperLyricApi 示例代码
+ * SuperLyricApi 使用示例。
  *
  * @author 焕晨HChen
  */
 public class SuperLyricDemo {
     /**
-     * Xposed 模块 / 消费端（如桌面歌词、状态栏歌词、灵动岛、智能手表等）示例
+     * 接收端示例。
      */
-    public static void ModuleDemo() {
-        ISuperLyricReceiver.Stub receiver;
-        SuperLyricHelper.registerReceiver(receiver = new ISuperLyricReceiver.Stub() {
+    public static void receiverDemo() {
+        SuperLyric.receiver().register(new LyricListener() {
             @Override
-            public void onLyric(String publisher, SuperLyricData rawData) throws RemoteException {
-                // 推荐：使用 SuperLyricCache.resolve 自动处理全量缓存、增量包合成及模块被杀重启自愈
-                SuperLyricData data = SuperLyricCache.resolve(rawData);
-                if (data == null) {
-                    return;
-                }
+            public void onLyric(LyricView view) {
+                // view 已是合成后的完整状态
+                Lyric doc = view.getLyric();
+                String title = doc.getTitle();
+                String artist = doc.getArtist();
+                long duration = doc.getDuration();
+                int total = doc.getLineCount();
 
-                // 歌曲基础信息
-                String title = data.getTitle();
-                String artist = data.getArtist();
-                String album = data.getAlbum();
-                long duration = data.getDuration(); // 歌曲总时长（毫秒）
-                long position = data.getPosition(); // 当前播放进度毫秒点位
+                long position = view.getPosition();
+                float speed = view.getSpeed();
+                // PLAYING / PAUSED / BUFFERING / STOPPED / ERROR
+                PlaybackState state = view.getState();
 
-                // 1. 当前播放行（单行通道：增量包为当前行，全量包为首行）
-                SuperLyricLine currentLine = data.getLyric();
-                if (currentLine != null) {
-                    String text = currentLine.getText();
-                    long startTime = currentLine.getStartTime(); // 毫秒
-                    long endTime = currentLine.getEndTime(); // 毫秒
-                    String translation = currentLine.getTranslation(); // 当前行翻译文本
-                    String secondary = currentLine.getSecondary(); // 当前行副歌词/罗马音
+                // 当前行
+                Line line = view.getLine();
+                if (line != null) {
+                    String text = line.getText();
+                    long start = line.getStart();
+                    long end = line.getEnd();
+                    String translation = line.getTranslation();
+                    String secondary = line.getSecondary();
 
-                    // 逐字（卡拉 OK）数据 — 可能为 null
-                    SuperLyricWord[] words = currentLine.getWords();
+                    List<Word> words = line.getWords(); // 可能为 null
                     if (words != null) {
-                        for (SuperLyricWord word : words) {
-                            String wordText = word.getWord();
-                            long wordStartTime = word.getStartTime();
-                            long wordEndTime = word.getEndTime();
+                        for (Word word : words) {
+                            String w = word.getText();
+                            long ws = word.getStart();
+                            long we = word.getEnd();
                         }
                     }
                 }
 
-                // 2. 获取整首歌曲的所有歌词数据（适用于全屏歌词、多行滚动展示）
-                if (data.hasAllLyrics()) {
-                    SuperLyricLine[] allLines = data.getAllLyrics(); // 整首歌的所有歌词行
-                    int currentIndex = data.getCurrentLyricIndex(); // 当前行在整首歌中的下标 (0-based)
-                    int totalCount = data.getAllLyricsCount(); // 总行数
-
-                    // 3. 点位切片：零开销直接提取已播放完毕和尚未播放的行
-                    List<SuperLyricLine> playedLines = data.getPlayedLyrics(); // 已播放历史行列表
-                    List<SuperLyricLine> upcomingLines = data.getUpcomingLyrics(); // 未播放未来行列表
-
-                    // 安全按索引获取特定行
-                    SuperLyricLine line2 = data.getLyricAt(2);
-                }
-
-                // 自定义附加数据
-                if (data.hasExtra()) {
-                    Bundle extra = data.getExtra();
-                }
+                // 整首歌词，以及当前行前后的切片
+                List<Line> all = doc.getLines();
+                int index = view.getIndex();
+                List<Line> played = view.getPlayed();
+                List<Line> upcoming = view.getUpcoming();
             }
 
             @Override
-            public void onStop(String publisher, SuperLyricData data) throws RemoteException {
-                // 当发布者暂停播放或其进程终止时调用
+            public void onStop(Stop stop) {
+                // 原因：PAUSED / STOPPED / ERROR / PROCESS_DIED / CLEARED
             }
         });
 
-        // 主动拉取：若模块/悬浮窗冷启动，可直接主动获取当前正在播放曲目的全量数据（无需等待切歌或下一行）
-        SuperLyricData currentPlaying = SuperLyricHelper.getLatestLyric();
+        // 冷启动时主动获取
+        LyricView current = SuperLyric.receiver().latest();
 
-        // 查询注册状态或完成后取消注册
-        boolean registered = SuperLyricHelper.isReceiverRegistered(receiver);
-        SuperLyricHelper.unregisterReceiver(receiver);
+        SuperLyric.receiver().unregister();
     }
 
     /**
-     * 音乐应用 / Hook 发布端示例
+     * 发布端示例。
      */
-    public static void MusicAppDemo() {
-        SuperLyricHelper.isAvailable(); // 服务是否可用
-        SuperLyricHelper.getApiVersion(); // 本库编译时的 API 版本（不代表服务端版本）
+    public static void publisherDemo() {
+        if (!SuperLyric.isAvailable()) {
+            return;
+        }
 
-        SuperLyricHelper.registerPublisher(); // 注册本应用为发布者，必须调用，否则会抛错
-        SuperLyricHelper.unregisterPublisher(); // 主动注销发布者身份，可自行调用，也可交给系统自行控制
-        SuperLyricHelper.isPublisherRegistered(); // 是否已经注册为发布者
+        List<Line> lines = new ArrayList<>();
+        lines.add(new Line("你好世界", 0, 900,
+            Arrays.asList(new Word("你好", 0, 400), new Word("世界", 400, 900)),
+            "Hello World",
+            "Ni Hao Shi Jie"));
+        lines.add(new Line("下一句歌词", 900, 2000, null, "Next Line", null));
 
-        // ======================== 发布策略 ========================
-        // 只发布一次全量包。播放进度与行切换由 SuperLyric 的服务端时钟负责，
-        // 应用侧不需要、也不应该推送进度。
+        // id、duration、lines 为必填项，其余为选填项
+        Lyric doc = new Lyric("song_1001", 180_000L, lines, "歌曲标题", "艺术家名称", "专辑名称");
 
-        SuperLyricLine[] allLines = new SuperLyricLine[]{
-            new SuperLyricLine("你好世界", new SuperLyricWord[]{
-                new SuperLyricWord("你好", 0, 400),
-                new SuperLyricWord("世界", 400, 900),
-            }, "Hello World", "Ni Hao Shi Jie", 0, 900),
-            new SuperLyricLine("下一句歌词", null, "Next Line", null, 900, 2000),
-        };
+        Publisher.PublishResult result = SuperLyric.publisher().publish(doc);
+        if (result != Publisher.PublishResult.OK) {
+            // 处理 SERVICE_UNAVAILABLE、PAYLOAD_TOO_LARGE、REJECTED
+        }
 
-        // 1. 歌曲初始化 / 切歌：发布整首歌词（唯一发布入口）
-        SuperLyricHelper.sendLyric(
-            new SuperLyricData()
-                .setTitle("歌曲标题")
-                .setArtist("艺术家名称")
-                .setAlbum("专辑名称")
-                .setLyricId("song_1001") // 必填：会话标识，兼接收端缓存自愈的键
-                .setDuration(180000L) // 必填：服务端时钟插值的锚，缺失则进度无法推算
-                .setAllLyrics(allLines) // 整首歌曲的所有行
-                .setCurrentLyricIndex(0) // 当前播放行下标
-                .setLyric(allLines[0]) // 向下兼容旧版单行接收端
-                .setExtra(null) // 可选
-        );
-
-        // 2. 切歌时立刻清场（可选）
-        // 需要马上抹掉上一首的歌词、不等系统播放状态回调时才调用。
-        // 日常的播放停止**无需**处理：SuperLyric 监听系统 MediaSession，
-        // 播放器进入 STOPPED / NONE / ERROR 时会自动向接收端广播 onStop。
-        // SuperLyricHelper.sendStop(new SuperLyricData());
+        // 切歌时再次调用 publish；仅在需要立即清除时调用 clear()
+        // SuperLyric.publisher().clear();
     }
 }

@@ -6,31 +6,33 @@
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/HChenX/SuperLyricApi)](https://github.com/HChenX/SuperLyricApi/releases)
 [![GitHub Release Date](https://img.shields.io/github/release-date/HChenX/SuperLyricApi)](https://github.com/HChenX/SuperLyricApi/releases)
 ![last commit](https://img.shields.io/github/last-commit/HChenX/SuperLyricApi?style=flat)
+![language](https://img.shields.io/badge/language-kotlin-purple)
 ![language](https://img.shields.io/badge/language-java-purple)
-![language](https://img.shields.io/badge/language-aidl-purple)
 
 <p><b><a href="README-en.md">English</a> | <a href="README.md">简体中文</a></b></p>
-<p>A lightweight Binder-based API for broadcasting and receiving real-time lyrics on Android.</p>
+<p>A Binder-based lyric transport API for Android.</p>
 </div>
 
 ---
 
-## ✨ Overview
+## Overview
 
-SuperLyricApi provides a clean, minimal interface that allows:
+SuperLyricApi carries lyrics between a music app and a system service.
 
-- **Music apps** to publish real-time lyric data (text, word-level timing, translation, playback
-  state, etc.) to a system-level service.
-- **Xposed modules** can receive these lyric data from system services.
+The music app publishes one complete lyric document, including line text, per-word timing,
+translation and secondary text. The system service aligns the document with playback progress and
+pushes updates to receivers whenever the current line or the playback state changes.
 
-Communication is handled entirely over Binder via AIDL, making it fast, process-safe, and compatible
-with Xposed-based module architectures.
+Progress, pause state and playback speed are read from MediaSession by the system. Publishers do not
+send them.
 
----
+Communication uses Binder. The payload is a self-describing byte stream, so new fields do not break
+existing receivers.
 
-## ✨ Add the Dependency
+The API is written in Kotlin and remains fully callable from Java. Implementation types are internal
+and not part of the public surface.
 
-Add the JitPack repository and the library dependency to your project:
+## Dependency
 
 ```groovy
 // settings.gradle
@@ -44,293 +46,168 @@ dependencyResolutionManagement {
 
 // build.gradle (app module)
 dependencies {
-    implementation 'com.github.HChenX:SuperLyricApi:3.7'
+    implementation 'com.github.HChenX:SuperLyricApi:4.0'
 }
 ```
 
-Sync your project and the API is ready to use.
+## Publishing
 
----
+Call `publish()` once per track, and again when the track changes.
 
-## 🛠 For Xposed Modules — Receiving Lyrics
+Kotlin:
 
-Register an `ISuperLyricReceiver` to receive lyric events. It is recommended to use
-`SuperLyricCache.resolve(data)` to automatically merge delta packets with full-song cached lyrics
-and support seamless crash recovery.
+```kotlin
+val lines = listOf(
+    Line(
+        "Hello world", 0, 900,
+        listOf(Word("Hello", 0, 400), Word("world", 400, 900)),
+        "你好世界",
+        "Ni Hao Shi Jie",
+    ),
+    Line("Next line", 900, 2000),
+)
 
-```java
-public static void ModuleDemo() {
-    ISuperLyricReceiver.Stub receiver;
-    SuperLyricHelper.registerReceiver(receiver = new ISuperLyricReceiver.Stub() {
-        @Override
-        public void onLyric(String publisher, SuperLyricData rawData) throws RemoteException {
-            // Recommended: Use SuperLyricCache.resolve to seamlessly reconstruct full-song lyrics from delta packets
-            SuperLyricData data = SuperLyricCache.resolve(rawData);
-            if (data == null) return;
+val doc = Lyric("song_1001", 180_000L, lines, "Title", "Artist", "Album")
 
-            String title = data.getTitle();
-            String artist = data.getArtist();
-            String album = data.getAlbum();
-            long duration = data.getDuration(); // Total track duration (ms)
-            long position = data.getPosition(); // Current playback position (ms)
-
-            // 1. Current line (single-line channel: the current line in a delta, the first line in a full payload)
-            SuperLyricLine currentLine = data.getLyric();
-            if (currentLine != null) {
-                String text = currentLine.getText();
-                long startTime = currentLine.getStartTime(); // ms
-                long endTime = currentLine.getEndTime(); // ms
-                String translation = currentLine.getTranslation(); // Line translation
-                String secondary = currentLine.getSecondary(); // Secondary/romanization text
-
-                // Word-level (karaoke) timing
-                SuperLyricWord[] words = currentLine.getWords();
-                if (words != null) {
-                    for (SuperLyricWord word : words) {
-                        String wordText = word.getWord();
-                        long wordStartTime = word.getStartTime();
-                        long wordEndTime = word.getEndTime();
-                    }
-                }
-            }
-
-            // 2. Access entire song lyrics (for full-screen / multi-line / scrolling list UI)
-            if (data.hasAllLyrics()) {
-                SuperLyricLine[] allLines = data.getAllLyrics(); // All lines of the song
-                int currentIndex = data.getCurrentLyricIndex(); // Index of the currently playing line
-
-                // 3. Instant slicing: played vs. upcoming lines
-                List<SuperLyricLine> played = data.getPlayedLyrics(); // Already played history lines
-                List<SuperLyricLine> upcoming = data.getUpcomingLyrics(); // Upcoming lines
-            }
-
-            if (data.hasExtra()) {
-                Bundle extra = data.getExtra();
-            }
-        }
-
-        @Override
-        public void onStop(String publisher, SuperLyricData data) throws RemoteException {
-            // Called when the publisher pauses playback or its process dies
-        }
-    });
-
-    // Active Query: Pull currently playing full lyrics on receiver cold-start or floating window launch
-    SuperLyricData currentPlaying = SuperLyricHelper.getLatestLyric();
-
-    // Query registration status or unregister when done
-    boolean registered = SuperLyricHelper.isReceiverRegistered(receiver);
-    SuperLyricHelper.unregisterReceiver(receiver);
+when (SuperLyric.publisher().publish(doc)) {
+    Publisher.PublishResult.OK -> Unit
+    Publisher.PublishResult.SERVICE_UNAVAILABLE -> Unit
+    Publisher.PublishResult.PAYLOAD_TOO_LARGE -> Unit
+    Publisher.PublishResult.REJECTED -> Unit
 }
 ```
 
----
-
-## 🔧 For Music Apps — Publishing Lyrics
-
-Music apps must register as a **publisher** before sending any data.
-
-### 1. Check service availability and version
+Java:
 
 ```java
-boolean available = SuperLyricHelper.isAvailable();
+List<Line> lines = new ArrayList<>();
+lines.add(new Line("Hello world", 0, 900,
+        Arrays.asList(new Word("Hello", 0, 400), new Word("world", 400, 900)),
+        "你好世界", "Ni Hao Shi Jie"));
+lines.add(new Line("Next line", 900, 2000, null, null, null));
 
-// Optional: check that the module installed on the device matches this library
-int libraryVersion = SuperLyricHelper.getApiVersion();      // version this library was built from
-int serverVersion = SuperLyricHelper.getServerApiVersion(); // version the service implements
-// serverVersion == SuperLyricHelper.API_VERSION_UNKNOWN (-1) means the service is too old to answer
-```
+Lyric doc = new Lyric("song_1001", 180_000L, lines, "Title", "Artist", "Album");
 
-### 2. Register as a publisher
-
-Call this once when your app starts (e.g., in `onCreate`). Publishing will throw an
-`IllegalStateException` if this step is skipped.
-
-```java
-public static void MusicAppDemo() {
-    SuperLyricHelper.registerPublisher();
+Publisher.PublishResult result = SuperLyric.publisher().publish(doc);
+if (result != Publisher.PublishResult.OK) {
+    // SERVICE_UNAVAILABLE / PAYLOAD_TOO_LARGE / REJECTED
 }
 ```
 
-### 3. Send lyric data
+| Field | Requirement | Notes |
+|---|---|---|
+| `lyricId` | required | track identity used by receiver caches |
+| `duration` | required, greater than 0 | maps the lyric timeline to playback |
+| `lines` with `start` and `end` | required | line timing determines the current line |
+| `title`, `artist`, `album` | optional | display and server-side track matching |
+| `words`, `translation`, `secondary` | optional | omitted values degrade to plain line text |
 
-**A music app only needs to publish the full payload.** Playback progress and line switching are
-driven by SuperLyric's own service-side clock, which builds the lightweight delta packets and
-broadcasts them to receivers whenever the current line changes. The app should not push progress
-itself.
+`lyricId`, `duration` and `lines` are validated by the `Lyric` constructor; invalid values raise
+`IllegalArgumentException`, while a null passed from Java is rejected by the null check first.
 
-#### 3.1 On Track Switch / Initial Load (Publish the Full Payload)
+Clearing is handled by the system when the playing track changes. Call
+`SuperLyric.publisher().clear()` only when the lyrics must be removed immediately.
+
+## Receiving
+
+Kotlin:
+
+```kotlin
+SuperLyric.receiver().register(object : LyricListener {
+    override fun onLyric(view: LyricView) {
+        val lyric = view.lyric
+        val line = view.line
+        val index = view.index
+        val position = view.position
+    }
+
+    override fun onStop(stop: Stop) {
+        val reason = stop.reason
+    }
+})
+
+val current = SuperLyric.receiver().latest()
+
+SuperLyric.receiver().unregister()
+```
+
+Java:
 
 ```java
-public static void MusicAppDemo() {
-    // Construct all lyric lines for the song
-    SuperLyricLine[] allLines = new SuperLyricLine[]{
-        new SuperLyricLine("Hello world", new SuperLyricWord[]{
-            new SuperLyricWord("Hello", 0, 400),
-            new SuperLyricWord("world", 400, 900),
-        }, "你好世界", "Ni Hao Shi Jie", 0, 900),
-        new SuperLyricLine("Next lyric line", null, "下一句歌词", null, 900, 2000),
-    };
+SuperLyric.receiver().register(new LyricListener() {
+    @Override
+    public void onLyric(LyricView view) {
+        Lyric doc = view.getLyric();
+        Line line = view.getLine();
+        int index = view.getIndex();
+    }
 
-    SuperLyricHelper.sendLyric(
-        new SuperLyricData()
-            .setTitle("Song Title")
-            .setArtist("Artist Name")
-            .setAlbum("Album Name")
-            .setLyricId("song_unique_id") // Required: session identity, and the key receivers cache on
-            .setDuration(180000L) // Required: the anchor the service-side clock interpolates from (repaired from system metadata when absent)
-            .setAllLyrics(allLines) // Full track lines
-            .setCurrentLyricIndex(0) // Current line index
-            .setLyric(allLines[0]) // Backward compatibility for legacy single-line receivers
-    );
-}
+    @Override
+    public void onStop(Stop stop) {
+        // PAUSED / STOPPED / ERROR / PROCESS_DIED / CLEARED
+    }
+});
 ```
 
-#### 3.2 Line Changes / Progress During Playback
+Callbacks run on a binder thread. Exceptions thrown from a callback are caught and logged, and do
+not affect other receivers.
 
-**Nothing to do.** Once the full payload is received, SuperLyric derives the playback position from
-its own clock, tracks the current line, and broadcasts a delta packet to receivers on every line
-change. Pushing progress from the app as well would put two clocks in competition.
+`position` is a snapshot taken when the update was pushed. For continuous updates, extrapolate
+locally with `SystemClock.elapsedRealtime()` and `speed`.
 
-### 4. Send a stop event
+## API
 
-**Not needed by default.** SuperLyric listens to the system `MediaSession` through
-`SystemPlayStateListener` and broadcasts a stop to receivers automatically once the player reaches
-`STOPPED` / `NONE` / `ERROR`. Leave that listener enabled.
+| Type | Description |
+|---|---|
+| `SuperLyric` | Entry point: `isAvailable()`, `publisher()`, `receiver()` |
+| `Publisher` | `publish(Lyric)`, `clear()` |
+| `Receiver` | `register(LyricListener)`, `unregister()`, `latest()` |
+| `LyricListener` | `onLyric(LyricView)`, `onStop(Stop)` |
+| `LyricView` | Merged view: document, current line, position, speed, playback state |
+| `Lyric`, `Line`, `Word` | Read-only lyric models |
+| `State`, `Stop` | State and stop events produced by the system |
+| `PublishResult`, `RegisterResult` | Call results |
 
-You only need to send it yourself if you disabled the listener in §6:
+## Compatibility
 
-```java
-public static void MusicAppDemo() {
-    SuperLyricHelper.sendStop(
-        new SuperLyricData()
-    );
-}
+Version 4.0 rewrites the source API and keeps the wire protocol compatible.
+
+Each generation has its own service name (`super_lyric.v4` and `super_lyric`), and either side can
+be mixed:
+
+| Client | Server | Result |
+|---|---|---|
+| 4.0 | 4.0 | full feature set |
+| 4.0 | 3.x | published payloads are converted to 3.x format; no speed, no stop reason |
+| 3.x | 4.0 | the server emits 3.x payloads |
+| 3.x | 3.x | unchanged |
+
+The client detects server capability by checking whether `super_lyric.v4` exists. No version
+numbers are involved.
+
+## Adding a Field
+
+Add a field annotated with `@Wire` to a model class. The codec, AIDL and compatibility layer need
+no changes.
+
+```kotlin
+@field:Wire(7)
+var romanization: String? = null
+    private set
 ```
 
-### 5. Unregister (optional)
+Field ids are unique within a class, may only be added, and are never changed or reused. When
+adding an id, update `api/src/test/resources/wire-ids.txt`; `SchemaIdTest` verifies the snapshot.
 
-The system automatically cleans up publisher registration when your app process dies. You may also
-unregister explicitly:
+## Build and Test
 
-```java
-public static void MusicAppDemo() {
-    SuperLyricHelper.unregisterPublisher();
-}
+```bash
+./gradlew :api:test
+./gradlew :api:assembleRelease :app:assembleDebug
 ```
 
-### 6. About system playback state
+The AAR ships its own `consumer-rules.pro`; no manual ProGuard rules are required.
 
-SuperLyric **always** listens to the system's `MediaSession`: it synchronises playback state and
-metadata, and broadcasts a stop to receivers when playback ends.
-
-**There is nothing for an integrator to configure** — the per-app switch that used to disable this
-listener is no longer exposed.
-
----
-
-## 📦 Data Model Reference
-
-### `SuperLyricData`
-
-| Method                           | Description                                                          |
-|----------------------------------|----------------------------------------------------------------------|
-| `setTitle(String)`               | Song title.                                                          |
-| `setArtist(String)`              | Artist name.                                                         |
-| `setAlbum(String)`               | Album name.                                                          |
-| `setLyric(SuperLyricLine)`       | Primary lyric line (single-line mode or current line).               |
-| `setSecondary(SuperLyricLine)`   | Secondary lyric line (e.g. romanization).                            |
-| `setTranslation(SuperLyricLine)` | Translation of the primary lyric.                                    |
-| `setAllLyrics(SuperLyricLine[])` | Sets all lyric lines for the full song.                              |
-| `getAllLyrics()`                 | Gets all lyric lines for the song.                                   |
-| `getAllLyricsList()`             | Gets all lyric lines as a `List<SuperLyricLine>`.                    |
-| `getAllLyricsCount()`            | Gets total line count.                                               |
-| `setCurrentLyricIndex(int)`      | Sets 0-based currently playing line index.                           |
-| `getCurrentLyricIndex()`         | Gets current line index.                                             |
-| `setDuration(long)`              | Sets total track duration in ms.                                     |
-| `getDuration()`                  | Gets total track duration in ms.                                     |
-| `setPosition(long)`              | Sets current playback timestamp in ms.                               |
-| `getPosition()`                  | Gets current playback timestamp in ms.                               |
-| `setLyricId(String)`             | Sets unique lyric fingerprint ID for caching & self-healing.         |
-| `getLyricId()`                   | Gets unique lyric ID.                                                |
-| `getPlayedLyrics()`              | Slices and returns list of already played history lines.             |
-| `getUpcomingLyrics()`            | Slices and returns list of upcoming future lines.                    |
-| `getLyricAt(int index)`          | Safely accesses lyric line at given index with bounds check.         |
-| `setExtra(Bundle)`               | Custom key-value data. Merges with any existing extras.              |
-| `isFullPayload()`                | Whether this packet is a full payload (carries the whole lyric).     |
-| `isDeltaPayload()`               | Whether this packet is a delta payload (index and current line only).|
-| `isStopPayload()`                | Whether this packet is a stop/empty payload (no full lyric, no current line). |
-
-Each field has a corresponding `hasXxx()` guard method (`hasAllLyrics()`, `hasDuration()`, etc.) —
-always
-check before accessing optional fields.
-
-### `SuperLyricLine`
-
-Represents a single line of lyrics.
-
-| Constructor                                                                 | Description                        |
-|-----------------------------------------------------------------------------|------------------------------------|
-| `SuperLyricLine(text)`                                                      | Text only.                         |
-| `SuperLyricLine(text, startTime, endTime)`                                  | Text with line timing.             |
-| `SuperLyricLine(text, words[], startTime, endTime)`                         | Text with word-level timing.       |
-| `SuperLyricLine(text, words[], translation, startTime, endTime)`            | Text, words, translation & timing. |
-| `SuperLyricLine(text, words[], translation, secondary, startTime, endTime)` | Complete line with all fields.     |
-
-| Method                 | Returns                              | Description                      |
-|------------------------|--------------------------------------|----------------------------------|
-| `getText()`            | `String` (`@NonNull`)                | Line text                        |
-| `getStartTime()`       | `long`                               | Line start time in ms            |
-| `getEndTime()`         | `long`                               | Line end time in ms              |
-| `getWords()`           | Array of `SuperLyricWord`, or `null` | Word-level timing array          |
-| `getTranslation()`     | `String`, or `null`                  | Line translation text            |
-| `getSecondary()`       | `String`, or `null`                  | Line secondary/romanization text |
-| `getTranslationLine()` | `SuperLyricLine`, or `null`          | Wrapped translation line object  |
-| `getSecondaryLine()`   | `SuperLyricLine`, or `null`          | Wrapped secondary line object    |
-
-### `SuperLyricCache`
-
-Provides thread-safe LRU-based full-song caching, delta packet merging, and receiver crash-recovery self-healing without abrupt cache flushes.
-
-| Method                                  | Description                                                                        |
-|-----------------------------------------|------------------------------------------------------------------------------------|
-| `SuperLyricCache.resolve(incomingData)` | Passes incoming data, automatically merges delta or recovers, returning full view. |
-| `SuperLyricCache.put(data)`             | Manually puts full song into cache.                                                |
-| `SuperLyricCache.get(lyricId)`          | Retrieves cached full song data.                                                   |
-| `SuperLyricCache.clear()`               | Clears cache.                                                                      |
-
-### `SuperLyricWord`
-
-Represents a single word within a lyric line, used for karaoke-style word highlighting.
-
-| Constructor                                | Description       |
-|--------------------------------------------|-------------------|
-| `SuperLyricWord(word, startTime, endTime)` | Word with timing. |
-
-| Method           | Returns                |
-|------------------|------------------------|
-| `getWord()`      | Word text (`@NonNull`) |
-| `getStartTime()` | Word start time in ms  |
-| `getEndTime()`   | Word end time in ms    |
-
----
-
-## 🌟 ProGuard / R8
-
-It is strongly recommended to keep all API classes unobfuscated:
-
-```proguard
--keep class com.hchen.superlyricapi.* {*;}
-```
-
----
-
-## 📢 Lyrics Finder
+## Related
 
 - [SuperLyric](https://github.com/HChenX/SuperLyric)
-
----
-
-## 🎉 Closing
-
-💖 **Thank you for your support — enjoy your day!** 🚀
