@@ -52,7 +52,7 @@ public class SuperLyricDemo {
                     long start = line.getStart();
                     long end = line.getEnd();
                     String translation = line.getTranslation();
-                    String secondary = line.getSecondary();
+                    String phonetic = line.getPhonetic();
 
                     List<Word> words = line.getWords(); // 可能为 null
                     if (words != null) {
@@ -80,7 +80,7 @@ public class SuperLyricDemo {
         // 冷启动时主动获取
         LyricView current = SuperLyric.receiver().latest();
 
-        SuperLyric.receiver().unregister();
+        SuperLyric.receiver().unregisterAll();
     }
 
     /**

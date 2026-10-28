@@ -23,28 +23,40 @@ import com.hchen.superlyricapi.wire.Frame
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 class LyricCacheTest {
 
     private class Fake : Transport {
+        @Volatile
         var latestFrame: Frame? = null
-        var published: Lyric? = null
 
-        override fun publish(lyric: Lyric): Int {
-            published = lyric
-            return 0
-        }
+        @Volatile
+        var latestDelayMs: Long = 0
 
-        override fun clear() {
-            published = null
-        }
+        val latestCalled = CountDownLatch(1)
+
+        override fun publish(lyric: Lyric): Int = 0
+
+        override fun clear() = Unit
 
         override fun register(sink: FrameSink) = Unit
 
         override fun unregister() = Unit
 
-        override fun latest(): Frame? = latestFrame
+        override fun latest(): Frame? {
+            if (latestDelayMs > 0) {
+                Thread.sleep(latestDelayMs)
+            }
+            latestCalled.countDown()
+            return latestFrame
+        }
+
+        override fun apiVersion(): Int = 0
     }
 
     private fun doc(id: String): Lyric = Lyric(
@@ -62,7 +74,7 @@ class LyricCacheTest {
 
     @Test
     fun fullFrameProducesAView() {
-        val cache = LyricCache(Fake())
+        val cache = LyricCache(Fake()) { }
 
         val view = cache.resolve(Frame.full(doc("s1"), state("s1", 0, 0)))
 
@@ -73,7 +85,7 @@ class LyricCacheTest {
 
     @Test
     fun stateUpdatesIndexAndPosition() {
-        val cache = LyricCache(Fake())
+        val cache = LyricCache(Fake()) { }
         cache.resolve(Frame.full(doc("s1"), state("s1", 0, 0)))
 
         val view = cache.resolve(Frame.state(state("s1", 2, 2200)))
@@ -84,33 +96,57 @@ class LyricCacheTest {
     }
 
     @Test
-    fun stateWithoutDocumentSelfHealsFromTheService() {
+    fun stateWithoutDocumentHealsAsynchronously() {
         val fake = Fake()
         fake.latestFrame = Frame.full(doc("s1"), state("s1", 1, 1200))
-        val cache = LyricCache(fake)
 
-        // 缓存为空时只收到 STATE 帧
-        val view = cache.resolve(Frame.state(state("s1", 1, 1200)))
+        val delivered = CopyOnWriteArrayList<LyricView>()
+        val latch = CountDownLatch(1)
+        val cache = LyricCache(fake) { view ->
+            delivered += view
+            latch.countDown()
+        }
 
-        assertNotNull(view)
-        assertEquals("s1", view!!.lyric.id)
-        assertEquals("b", view.line!!.text)
+        // 缓存为空时只收到 STATE 帧：同步返回 null，自愈在后台线程完成
+        assertNull(cache.resolve(Frame.state(state("s1", 1, 1200))))
+
+        assertTrue("heal result was not delivered", latch.await(2, TimeUnit.SECONDS))
+        assertEquals("b", delivered.first().line!!.text)
     }
 
     @Test
-    fun stateForAnotherTrackIsDropped() {
+    fun resolveNeverBlocksOnTheService() {
+        val fake = Fake()
+        fake.latestDelayMs = 500
+        fake.latestFrame = Frame.full(doc("s1"), state("s1", 0, 0))
+        val cache = LyricCache(fake) { }
+
+        val startedAt = System.nanoTime()
+        cache.resolve(Frame.state(state("s1", 1, 1000)))
+        val elapsedMs = (System.nanoTime() - startedAt) / 1_000_000
+
+        assertTrue("resolve must not block on the service, took $elapsedMs ms", elapsedMs < 100)
+    }
+
+    @Test
+    fun stateForAnotherTrackIsNotSpliced() {
         val fake = Fake()
         fake.latestFrame = Frame.full(doc("track-B"), state("track-B", 0, 0))
-        val cache = LyricCache(fake)
 
-        val view = cache.resolve(Frame.state(state("track-A", 1, 1000)))
+        val delivered = CopyOnWriteArrayList<LyricView>()
+        val cache = LyricCache(fake) { delivered += it }
 
-        assertNull("must never splice another track's lyrics in", view)
+        assertNull(cache.resolve(Frame.state(state("track-A", 1, 1000))))
+        assertTrue(fake.latestCalled.await(2, TimeUnit.SECONDS))
+        Thread.sleep(100)
+
+        assertTrue("must never splice another track's lyrics in", delivered.isEmpty())
+        assertNull(cache.doc)
     }
 
     @Test
     fun stopClearsTheDocument() {
-        val cache = LyricCache(Fake())
+        val cache = LyricCache(Fake()) { }
         cache.resolve(Frame.full(doc("s1"), state("s1", 0, 0)))
 
         assertNull(cache.resolve(Frame.stop(Stop("s1", StopReason.STOPPED))))
@@ -119,7 +155,7 @@ class LyricCacheTest {
 
     @Test
     fun missingIndexIsDerivedFromPosition() {
-        val cache = LyricCache(Fake())
+        val cache = LyricCache(Fake()) { }
         cache.resolve(Frame.full(doc("s1"), null))
 
         val view = cache.resolve(Frame.state(state("s1", -1, 1500)))

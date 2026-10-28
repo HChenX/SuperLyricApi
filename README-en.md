@@ -73,7 +73,8 @@ when (SuperLyric.publisher().publish(doc)) {
     Publisher.PublishResult.OK -> Unit
     Publisher.PublishResult.SERVICE_UNAVAILABLE -> Unit
     Publisher.PublishResult.PAYLOAD_TOO_LARGE -> Unit
-    Publisher.PublishResult.REJECTED -> Unit
+    // REJECTED and its reasons: TRACK_MISMATCH, MALFORMED, NOT_REGISTERED, QUOTA
+    else -> Unit
 }
 ```
 
@@ -97,10 +98,10 @@ if (result != Publisher.PublishResult.OK) {
 | Field | Requirement | Notes |
 |---|---|---|
 | `lyricId` | required | track identity used by receiver caches |
-| `duration` | required, greater than 0 | maps the lyric timeline to playback |
+| `duration` | required, 0 means unknown | the server may fill it from MediaMetadata |
 | `lines` with `start` and `end` | required | line timing determines the current line |
 | `title`, `artist`, `album` | optional | display and server-side track matching |
-| `words`, `translation`, `secondary` | optional | omitted values degrade to plain line text |
+| `words`, `translation`, `phonetic` | optional | omitted values degrade to plain line text |
 
 `lyricId`, `duration` and `lines` are validated by the `Lyric` constructor; invalid values raise
 `IllegalArgumentException`, while a null passed from Java is rejected by the null check first.
@@ -128,7 +129,7 @@ SuperLyric.receiver().register(object : LyricListener {
 
 val current = SuperLyric.receiver().latest()
 
-SuperLyric.receiver().unregister()
+SuperLyric.receiver().unregisterAll()
 ```
 
 Java:
@@ -159,9 +160,9 @@ locally with `SystemClock.elapsedRealtime()` and `speed`.
 
 | Type | Description |
 |---|---|
-| `SuperLyric` | Entry point: `isAvailable()`, `publisher()`, `receiver()` |
+| `SuperLyric` | Entry point: `isAvailable()`, `serverApiVersion()`, `publisher()`, `receiver()` |
 | `Publisher` | `publish(Lyric)`, `clear()` |
-| `Receiver` | `register(LyricListener)`, `unregister()`, `latest()` |
+| `Receiver` | `register(LyricListener)`, `unregister(listener)`, `unregisterAll()`, `latest()`, `lastStop()` |
 | `LyricListener` | `onLyric(LyricView)`, `onStop(Stop)` |
 | `LyricView` | Merged view: document, current line, position, speed, playback state |
 | `Lyric`, `Line`, `Word` | Read-only lyric models |

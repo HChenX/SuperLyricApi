@@ -15,7 +15,9 @@ import com.hchen.superlyricapi.wire.Wire
 /**
  * 一首歌的歌词文档。
  *
- * id、duration、lines 为必填项，由构造器校验；title、artist、album 为选填项。
+ * id 与 lines 为必填项；duration 为 0 表示未知，服务端可从 MediaMetadata 补齐。
+ *
+ * 两条契约：lines 必须按 start 升序；indexAt 在首行开始之前返回 -1，需要显示首行时由调用方自行收敛。
  */
 class Lyric private constructor() {
     @field:Wire(1)
@@ -34,6 +36,9 @@ class Lyric private constructor() {
     var album: String? = null
         private set
 
+    /**
+     * 总时长，毫秒；0 表示未知。
+     */
     @field:Wire(5)
     var duration: Long = 0L
         private set
@@ -44,13 +49,13 @@ class Lyric private constructor() {
 
     /**
      * @param id 曲目标识，不能为空白
-     * @param duration 总时长，毫秒，必须大于 0
-     * @param lines 歌词行，不能为空
+     * @param duration 总时长，毫秒，不能为负数；0 表示未知
+     * @param lines 歌词行，不能为空，必须按 start 升序
      * @throws IllegalArgumentException 必填项缺失或取值非法
      */
     constructor(id: String, duration: Long, lines: List<Line>) : this() {
         require(id.isNotBlank()) { "lyricId is required and must not be blank" }
-        require(duration > 0L) { "duration must be > 0, was $duration" }
+        require(duration >= 0L) { "duration must not be negative, was $duration" }
         require(lines.isNotEmpty()) { "lines must not be empty" }
         this.id = id
         this.duration = duration
@@ -77,7 +82,7 @@ class Lyric private constructor() {
      * 计算指定播放进度对应的行下标。
      *
      * @param positionMs 播放进度，毫秒
-     * @return 行下标；早于第一行起始时间时为 -1
+     * @return 行下标；早于首行起始时间时为 -1
      */
     fun indexAt(positionMs: Long): Int = lines.indexOfLast { it.start <= positionMs }
 

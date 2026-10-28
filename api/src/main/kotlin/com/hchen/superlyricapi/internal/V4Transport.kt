@@ -11,6 +11,7 @@
 package com.hchen.superlyricapi.internal
 
 import android.os.IBinder
+import android.os.RemoteException
 import android.util.Log
 import com.hchen.superlyricapi.Publisher
 import com.hchen.superlyricapi.model.Lyric
@@ -21,22 +22,26 @@ import com.hchen.superlyricapi.wire.WireFormatException
 
 /**
  * 4.0 服务端的传输实现。
+ *
+ * 连续 [FAILURE_THRESHOLD] 次 RemoteException 后熔断 [COOLDOWN_MS] 毫秒，期间 [isBlocked] 为真，
+ * 由 [BinderHub] 跳过 v4 直接走 3.x。任意一次成功即解除。
  */
 internal class V4Transport(private val service: ISuperLyricService) : Transport {
     private var listener: ILyricFrameListener.Stub? = null
     private var warnedUnknownKind = false
 
     override fun publish(lyric: Lyric): Int {
-        val frame = Frame.full(lyric, null).encode()
-        if (frame.size > Frame.MAX_SIZE) {
-            Log.e(TAG, "Frame too large: ${frame.size} bytes")
+        val frame = try {
+            Frame.full(lyric, null).encode()
+        } catch (e: IllegalStateException) {
+            Log.e(TAG, "Frame too large: ${e.message}")
             return Publisher.PublishResult.PAYLOAD_TOO_LARGE.code
         }
-        return service.publish(frame)
+        return guard { service.publish(frame) }
     }
 
     override fun clear() {
-        service.clear()
+        guard { service.clear() }
     }
 
     override fun register(sink: FrameSink) {
@@ -60,19 +65,59 @@ internal class V4Transport(private val service: ISuperLyricService) : Transport 
             }
         }
         listener = stub
-        service.registerListener(stub)
+        guard { service.registerListener(stub) }
     }
 
     override fun unregister() {
         val stub = listener ?: return
-        service.unregisterListener(stub)
+        guard { service.unregisterListener(stub) }
         listener = null
     }
 
-    override fun latest(): Frame? = service.latest()?.let(Frame::decode)
+    override fun latest(): Frame? = guard { service.latest()?.let(Frame::decode) }
+
+    override fun apiVersion(): Int = try {
+        service.apiVersion
+    } catch (e: RemoteException) {
+        0
+    }
+
+    private inline fun <T> guard(block: () -> T): T = try {
+        block().also { Companion.noteSuccess() }
+    } catch (e: RemoteException) {
+        Companion.noteFailure()
+        throw e
+    }
 
     companion object {
         private const val TAG = "SuperLyric"
+        private const val FAILURE_THRESHOLD = 3
+        private const val COOLDOWN_MS = 60_000L
+
+        @Volatile
+        private var failures = 0
+
+        @Volatile
+        private var blocked = false
+
+        @Volatile
+        private var blockedUntil = 0L
+
+        fun isBlocked(): Boolean = blocked && System.nanoTime() < blockedUntil
+
+        fun noteFailure() {
+            failures += 1
+            if (failures >= FAILURE_THRESHOLD) {
+                blocked = true
+                blockedUntil = System.nanoTime() + COOLDOWN_MS * 1_000_000L
+            }
+        }
+
+        fun noteSuccess() {
+            failures = 0
+            blocked = false
+            blockedUntil = 0L
+        }
 
         /**
          * 由 IBinder 创建实例。

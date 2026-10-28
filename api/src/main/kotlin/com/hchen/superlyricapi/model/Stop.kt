@@ -11,6 +11,7 @@
 package com.hchen.superlyricapi.model
 
 import com.hchen.superlyricapi.wire.Wire
+import java.util.Objects
 
 /**
  * 停止事件。
@@ -28,6 +29,13 @@ class Stop private constructor() {
         this.id = id
         this.reason = reason
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is Stop) return false
+        return id == other.id && reason == other.reason
+    }
+
+    override fun hashCode(): Int = Objects.hash(id, reason)
 
     override fun toString(): String = "Stop{$id, $reason}"
 }

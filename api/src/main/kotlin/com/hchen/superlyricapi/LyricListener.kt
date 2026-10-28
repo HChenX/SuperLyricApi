@@ -13,8 +13,9 @@ package com.hchen.superlyricapi
 import com.hchen.superlyricapi.model.Stop
 
 /**
- * 歌词回调。回调在 binder 线程执行。
+ * 歌词回调。
  *
+ * 回调可能在任意线程执行，包括 [Receiver.register] 返回之前，以及库内部的工作线程。
  * 回调中抛出的异常会被捕获并记录，不影响其他接收端。
  */
 interface LyricListener {
@@ -26,7 +27,7 @@ interface LyricListener {
     fun onLyric(view: LyricView)
 
     /**
-     * 播放停止、暂停或发布方退出时调用。
+     * 播放会话结束时调用。暂停不会触发该回调，请以 [LyricView.state] 判断。
      *
      * @param stop 停止事件
      */

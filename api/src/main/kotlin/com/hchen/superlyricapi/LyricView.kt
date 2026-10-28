@@ -19,7 +19,7 @@ import com.hchen.superlyricapi.model.PlaybackState
  *
  * [position] 为推送时刻的快照，连续推进时可结合 SystemClock.elapsedRealtime() 与 [speed] 推算。
  */
-class LyricView internal constructor(
+class LyricView(
     val lyric: Lyric,
     val index: Int,
     val position: Long,

@@ -48,7 +48,7 @@ object SuperLyricKotlinDemo {
 
         val current = SuperLyric.receiver().latest()
 
-        SuperLyric.receiver().unregister()
+        SuperLyric.receiver().unregisterAll()
     }
 
     /**
@@ -74,7 +74,8 @@ object SuperLyricKotlinDemo {
             Publisher.PublishResult.OK -> Unit
             Publisher.PublishResult.SERVICE_UNAVAILABLE -> Unit
             Publisher.PublishResult.PAYLOAD_TOO_LARGE -> Unit
-            Publisher.PublishResult.REJECTED -> Unit
+            // REJECTED 及其细分原因：REJECTED_TRACK_MISMATCH、REJECTED_MALFORMED 等
+            else -> Unit
         }
     }
 }

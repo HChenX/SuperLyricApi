@@ -68,7 +68,8 @@ when (SuperLyric.publisher().publish(doc)) {
     Publisher.PublishResult.OK -> Unit
     Publisher.PublishResult.SERVICE_UNAVAILABLE -> Unit
     Publisher.PublishResult.PAYLOAD_TOO_LARGE -> Unit
-    Publisher.PublishResult.REJECTED -> Unit
+    // REJECTED 及细分原因：TRACK_MISMATCH、MALFORMED、NOT_REGISTERED、QUOTA
+    else -> Unit
 }
 ```
 
@@ -92,12 +93,12 @@ if (result != Publisher.PublishResult.OK) {
 | 字段 | 要求 | 说明 |
 |---|---|---|
 | `lyricId` | 必填 | 曲目标识，接收端按此区分缓存 |
-| `duration` | 必填，大于 0 | 用于把歌词时间轴对齐到播放进度 |
+| `duration` | 必填，0 表示未知 | 服务端可用 MediaMetadata 补齐 |
 | `lines`，每行 `start` 与 `end` | 必填 | 行时间决定当前行的计算 |
 | `title`、`artist`、`album` | 选填 | 用于显示与服务端曲目校验 |
-| `words`、`translation`、`secondary` | 选填 | 缺省时按整行或无翻译处理 |
+| `words`、`translation`、`phonetic` | 选填 | 缺省时按整行或无翻译处理 |
 
-`lyricId`、`duration`、`lines` 由 `Lyric` 构造器校验，取值非法时抛出 `IllegalArgumentException`（Java 传入 null 时由空值检查先行拦截）。
+`lyricId`、`duration`、`lines` 由 `Lyric` 构造器校验，取值非法时抛出 `IllegalArgumentException`（Java 传入 null 时由空值检查先行拦截）。`duration` 为 0 表示未知，服务端会尝试从 MediaMetadata 补齐。
 
 切歌时无需清理旧数据，系统检测到播放曲目变化后会自行处理。仅在需要立即清除时才调用 `SuperLyric.publisher().clear()`。
 
@@ -123,7 +124,7 @@ SuperLyric.receiver().register(object : LyricListener {
 
 val current = SuperLyric.receiver().latest()
 
-SuperLyric.receiver().unregister()
+SuperLyric.receiver().unregisterAll()
 ```
 
 Java：
@@ -148,7 +149,7 @@ SuperLyric.receiver().register(new LyricListener() {
 });
 
 LyricView current = SuperLyric.receiver().latest();
-SuperLyric.receiver().unregister();
+SuperLyric.receiver().unregisterAll();
 ```
 
 回调在 binder 线程执行。回调中抛出的异常会被捕获并记录，不影响其他接收端。
@@ -159,9 +160,9 @@ SuperLyric.receiver().unregister();
 
 | 类型 | 说明 |
 |---|---|
-| `SuperLyric` | 入口，提供 `isAvailable()`、`publisher()`、`receiver()` |
+| `SuperLyric` | 入口，提供 `isAvailable()`、`serverApiVersion()`、`publisher()`、`receiver()` |
 | `Publisher` | `publish(Lyric)`、`clear()` |
-| `Receiver` | `register(LyricListener)`、`unregister()`、`latest()` |
+| `Receiver` | `register(LyricListener)`、`unregister(listener)`、`unregisterAll()`、`latest()`、`lastStop()` |
 | `LyricListener` | `onLyric(LyricView)`、`onStop(Stop)` |
 | `LyricView` | 合成后的视图：歌词文档、当前行、进度、倍速、播放状态 |
 | `Lyric`、`Line`、`Word` | 歌词数据模型，只读 |

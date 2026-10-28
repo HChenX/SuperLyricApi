@@ -18,9 +18,14 @@ import com.hchen.superlyricapi.model.State
 import com.hchen.superlyricapi.wire.Frame
 
 /**
- * 将 FULL 与 STATE 帧合并为完整视图。缓存未命中时向服务端拉取全量，并校验曲目一致。
+ * 将 FULL 与 STATE 帧合并为完整视图。
+ *
+ * [resolve] 不会发起 binder 调用：缓存未命中时把补拉任务交给 [Background]，成功后通过 [deliver] 投递。
  */
-internal class LyricCache(private val transport: Transport) {
+internal class LyricCache(
+    private val transport: Transport,
+    private val deliver: (LyricView) -> Unit,
+) {
     var doc: Lyric? = null
         private set
 
@@ -28,19 +33,39 @@ internal class LyricCache(private val transport: Transport) {
     private var position = 0L
     private var speed = 1f
     private var state: PlaybackState? = null
+    private var healing = false
 
     fun resolve(frame: Frame?): LyricView? {
         val source = frame ?: return null
-        when (source.kind) {
-            null -> return null
-            Frame.Kind.STOP -> {
-                clear()
-                return null
+        synchronized(this) {
+            when (source.kind) {
+                null -> return null
+                Frame.Kind.STOP -> {
+                    clear()
+                    return null
+                }
+                Frame.Kind.FULL -> acceptFull(source)
+                Frame.Kind.STATE -> {
+                    val snapshot = source.state ?: return null
+                    if (!matches(snapshot)) {
+                        scheduleHeal(snapshot)
+                        return null
+                    }
+                    apply(snapshot)
+                }
             }
-            Frame.Kind.FULL -> acceptFull(source)
-            Frame.Kind.STATE -> acceptState(source.state)
+            return build()
         }
-        return build()
+    }
+
+    fun clear() {
+        synchronized(this) {
+            doc = null
+            index = -1
+            position = 0L
+            speed = 1f
+            state = null
+        }
     }
 
     private fun acceptFull(frame: Frame) {
@@ -58,13 +83,6 @@ internal class LyricCache(private val transport: Transport) {
         }
     }
 
-    private fun acceptState(snapshot: State?) {
-        if (snapshot == null) return
-        if (!matches(snapshot) && !heal(snapshot)) return
-
-        apply(snapshot)
-    }
-
     private fun matches(snapshot: State): Boolean {
         val current = doc ?: return false
         // 帧未携带 id 时按当前曲目处理
@@ -72,26 +90,38 @@ internal class LyricCache(private val transport: Transport) {
         return id == current.id
     }
 
-    private fun heal(snapshot: State): Boolean {
+    private fun scheduleHeal(snapshot: State) {
+        if (healing) return
+
+        healing = true
+        Background.execute { heal(snapshot) }
+    }
+
+    private fun heal(snapshot: State) {
         val remote = try {
             transport.latest()
         } catch (e: Exception) {
             Log.w(TAG, "Self-heal failed: ${e.message}")
-            return false
+            null
         }
 
-        val remoteDoc = remote?.doc ?: return false
-        // 与服务端当前曲目不一致时丢弃该帧
-        if (snapshot.id != null && snapshot.id != remoteDoc.id) {
-            return false
+        val view = synchronized(this) {
+            healing = false
+            val remoteDoc = remote?.doc
+            if (remoteDoc != null && (snapshot.id == null || snapshot.id == remoteDoc.id)) {
+                doc = remoteDoc
+                apply(snapshot)
+                build()
+            } else {
+                null
+            }
         }
-        doc = remoteDoc
-        return true
+        view?.let(deliver)
     }
 
     private fun apply(snapshot: State) {
         position = snapshot.position.coerceAtLeast(0L)
-        speed = snapshot.speed.takeIf { it > 0f } ?: 1f
+        speed = snapshot.speed
         state = snapshot.state
 
         val current = doc
@@ -108,14 +138,6 @@ internal class LyricCache(private val transport: Transport) {
     private fun build(): LyricView? {
         val current = doc ?: return null
         return LyricView(current, index, position, speed, state)
-    }
-
-    fun clear() {
-        doc = null
-        index = -1
-        position = 0L
-        speed = 1f
-        state = null
     }
 
     private companion object {

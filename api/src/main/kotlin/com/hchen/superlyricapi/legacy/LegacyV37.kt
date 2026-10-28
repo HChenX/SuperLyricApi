@@ -17,7 +17,6 @@ import com.hchen.superlyricapi.SuperLyricLine
 import com.hchen.superlyricapi.SuperLyricWord
 import com.hchen.superlyricapi.model.Line
 import com.hchen.superlyricapi.model.Lyric
-import com.hchen.superlyricapi.model.PlaybackState
 import com.hchen.superlyricapi.model.State
 import com.hchen.superlyricapi.model.Stop
 import com.hchen.superlyricapi.model.StopReason
@@ -29,13 +28,12 @@ import com.hchen.superlyricapi.wire.Frame
  *
  * 3.x 的 Parcel 布局为位置式，无法识别新增字段，因此只按旧格式写出固定字段。
  */
-@Suppress("DEPRECATION")
 object LegacyV37 {
 
     /**
      * 将 v4 文档转换为 3.x 数据。
      *
-     * 当前行与行下标取首行，进度取 0；行翻译与副歌词由行对象携带。
+     * 当前行与行下标取首行，进度取 0；行翻译与注音由行对象携带。
      *
      * @param lyric v4 歌词文档
      * @return 3.x 数据
@@ -49,7 +47,7 @@ object LegacyV37 {
                 line.text,
                 projectWords(line.words),
                 line.translation,
-                line.secondary,
+                line.phonetic,
                 line.start,
                 line.end,
             )
@@ -69,7 +67,7 @@ object LegacyV37 {
     /**
      * 将 3.x 数据转换为 v4 帧。全量数据生成 FULL，仅含状态的数据生成 STATE。
      *
-     * 3.x 不携带播放状态与倍速，统一按 PLAYING 与 1.0 处理。
+     * 3.x 不携带播放状态与倍速：state 置 null 表示未知，speed 按 1.0 处理。
      *
      * @param data 3.x 数据，可为 null
      * @return 帧；无法转换时为 null
@@ -87,7 +85,7 @@ object LegacyV37 {
             }
             return Frame.full(
                 doc,
-                State(doc.id, index, data.position.coerceAtLeast(0L), 1f, PlaybackState.PLAYING),
+                State(doc.id, index, data.position.coerceAtLeast(0L), 1f, null),
             )
         }
 
@@ -98,7 +96,7 @@ object LegacyV37 {
                     data.currentLyricIndex,
                     data.position.coerceAtLeast(0L),
                     1f,
-                    PlaybackState.PLAYING,
+                    null,
                 ),
             )
         }
@@ -121,11 +119,9 @@ object LegacyV37 {
         }
         if (lines.isEmpty()) return null
 
-        val lastEnd = raw.filterNotNull().maxOfOrNull { it.endTime } ?: 0L
-        val duration = if (data.hasDuration()) data.duration else lastEnd.coerceAtLeast(1L)
         return try {
-            Lyric(idOf(data), duration, lines, data.title, data.artist, data.album)
-        } catch (_: IllegalArgumentException) {
+            Lyric(idOf(data), data.duration, lines, data.title, data.artist, data.album)
+        } catch (invalid: IllegalArgumentException) {
             null
         }
     }

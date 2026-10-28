@@ -18,95 +18,162 @@ import com.hchen.superlyricapi.Receiver
 import com.hchen.superlyricapi.model.Stop
 import com.hchen.superlyricapi.model.StopReason
 import com.hchen.superlyricapi.wire.Frame
+import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * [Receiver] 的实现。
+ *
+ * 锁只用于交换字段，任何 binder 调用都在锁外进行，避免与服务端广播互锁。
  */
 internal object ReceiverImpl : Receiver {
     private const val TAG = "SuperLyric"
+    private const val RECOVER_DELAY_MS = 5_000L
+    private const val RETRY_DELAY_MS = 15_000L
 
     private val lock = Any()
-    private var callback: LyricListener? = null
+    private val listeners = CopyOnWriteArrayList<LyricListener>()
+
     private var cache: LyricCache? = null
     private var bound: Transport? = null
+    private var lastStopValue: Stop? = null
+    private var observing = false
 
     override fun register(listener: LyricListener): Receiver.RegisterResult {
-        synchronized(lock) {
-            unregisterLocked()
-            val transport = BinderHub.transport()
-                ?: return Receiver.RegisterResult.SERVICE_UNAVAILABLE
+        ensureObserver()
+        listeners.addIfAbsent(listener)
 
-            val nextCache = LyricCache(transport)
-            try {
-                transport.register(::dispatch)
-            } catch (_: RemoteException) {
-                BinderHub.reset()
-                return Receiver.RegisterResult.SERVICE_UNAVAILABLE
-            }
+        val transport = BinderHub.transport() ?: return Receiver.RegisterResult.SERVICE_UNAVAILABLE
+        if (synchronized(lock) { bound } != null) return Receiver.RegisterResult.OK
 
-            bound = transport
-            cache = nextCache
-            callback = listener
-            return Receiver.RegisterResult.OK
-        }
+        return bind(transport)
     }
 
-    override fun unregister() {
-        synchronized(lock) {
-            unregisterLocked()
-        }
+    override fun unregister(listener: LyricListener) {
+        listeners.remove(listener)
+        if (listeners.isEmpty()) unbind()
     }
 
-    private fun unregisterLocked() {
-        try {
-            bound?.unregister()
-        } catch (_: RemoteException) {
-        }
-
-        bound = null
-        cache = null
-        callback = null
+    override fun unregisterAll() {
+        listeners.clear()
+        unbind()
     }
 
     override fun latest(): LyricView? {
+        val transport = synchronized(lock) { bound } ?: BinderHub.transport() ?: return null
+        val frame = try {
+            transport.latest()
+        } catch (e: RemoteException) {
+            Log.w(TAG, "latest() failed: ${e.message}")
+            null
+        } ?: return null
+
+        if (frame.kind == Frame.Kind.STOP) return null
+
+        val active = synchronized(lock) { cache } ?: LyricCache(transport, ::deliverView).also {
+            synchronized(lock) { cache = it }
+        }
+        return active.resolve(frame)
+    }
+
+    override fun lastStop(): Stop? = synchronized(lock) { lastStopValue }
+
+    private fun bind(transport: Transport): Receiver.RegisterResult {
+        if (synchronized(lock) { bound } != null) return Receiver.RegisterResult.OK
+
+        val nextCache = LyricCache(transport, ::deliverView)
         synchronized(lock) {
-            val transport = bound ?: BinderHub.transport() ?: return null
-            return try {
-                val frame = transport.latest()
-                if (frame == null || frame.kind == Frame.Kind.STOP) {
-                    null
-                } else {
-                    val active = cache ?: LyricCache(transport).also { cache = it }
-                    active.resolve(frame)
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "latest() failed: ${e.message}")
-                null
+            bound = transport
+            cache = nextCache
+        }
+
+        return try {
+            transport.register(::dispatch)
+            Receiver.RegisterResult.OK
+        } catch (e: RemoteException) {
+            Log.w(TAG, "register() failed: ${e.message}")
+            synchronized(lock) {
+                bound = null
+                cache = null
             }
+            BinderHub.reset()
+            Receiver.RegisterResult.SERVICE_UNAVAILABLE
+        }
+    }
+
+    private fun unbind() {
+        val transport = synchronized(lock) {
+            val current = bound
+            bound = null
+            cache = null
+            current
+        }
+
+        if (transport == null) return
+        try {
+            transport.unregister()
+        } catch (ignored: RemoteException) {
         }
     }
 
     private fun dispatch(frame: Frame) {
-        val target: LyricListener?
-        val current: LyricCache?
-        synchronized(lock) {
-            target = callback
-            current = cache
-        }
+        val current = synchronized(lock) { cache } ?: return
 
-        if (target == null || current == null) return
-
-        try {
-            if (frame.kind == Frame.Kind.STOP) {
-                val stop = frame.stop ?: Stop(null, StopReason.STOPPED)
-                current.clear()
-                target.onStop(stop)
-                return
+        if (frame.kind == Frame.Kind.STOP) {
+            val stop = frame.stop ?: Stop(null, StopReason.STOPPED)
+            synchronized(lock) { lastStopValue = stop }
+            current.clear()
+            for (listener in listeners) {
+                try {
+                    listener.onStop(stop)
+                } catch (t: Throwable) {
+                    Log.e(TAG, "LyricListener threw", t)
+                }
             }
-            current.resolve(frame)?.let(target::onLyric)
-        } catch (t: Throwable) {
-            // 回调异常不应中断 binder 线程
-            Log.e(TAG, "LyricListener threw", t)
+            return
         }
+
+        current.resolve(frame)?.let(::deliverView)
+    }
+
+    private fun deliverView(view: LyricView) {
+        for (listener in listeners) {
+            try {
+                listener.onLyric(view)
+            } catch (t: Throwable) {
+                Log.e(TAG, "LyricListener threw", t)
+            }
+        }
+    }
+
+    private fun ensureObserver() {
+        if (observing) return
+        observing = true
+
+        BinderHub.addObserver { transport ->
+            if (transport != null) return@addObserver
+            // 服务断开：丢弃失效绑定，稍后重连
+            synchronized(lock) {
+                bound = null
+                cache = null
+            }
+            scheduleRecover(RECOVER_DELAY_MS)
+        }
+    }
+
+    private fun scheduleRecover(delayMs: Long) {
+        if (listeners.isEmpty()) return
+        Background.schedule(delayMs) { recover() }
+    }
+
+    private fun recover() {
+        if (listeners.isEmpty()) return
+        if (synchronized(lock) { bound } != null) return
+
+        val transport = BinderHub.transport()
+        if (transport == null) {
+            scheduleRecover(RETRY_DELAY_MS)
+            return
+        }
+        bind(transport)
     }
 }

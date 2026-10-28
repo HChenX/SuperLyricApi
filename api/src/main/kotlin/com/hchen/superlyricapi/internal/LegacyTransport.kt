@@ -28,6 +28,7 @@ import com.hchen.superlyricapi.wire.Frame
 /**
  * 3.x 服务端的传输实现。
  */
+@Suppress("DEPRECATION")
 internal class LegacyTransport(private val manager: ISuperLyricManager) : Transport {
     private var publisherRegistered = false
     private var receiver: ISuperLyricReceiver.Stub? = null
@@ -68,6 +69,8 @@ internal class LegacyTransport(private val manager: ISuperLyricManager) : Transp
     }
 
     override fun latest(): Frame? = LegacyV37.lift(manager.latestLyric)
+
+    override fun apiVersion(): Int = 0
 
     private fun ensurePublisher() {
         if (publisherRegistered) return

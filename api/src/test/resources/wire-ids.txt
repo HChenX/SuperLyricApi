@@ -1,6 +1,6 @@
 # v4 字段号快照。新增字段时同步更新本文件。
 # 字段号只增、不改、不复用。
-com.hchen.superlyricapi.wire.Frame=1,2,3,4
+com.hchen.superlyricapi.wire.Frame=1,2,3,4,5
 com.hchen.superlyricapi.model.Lyric=1,2,3,4,5,6
 com.hchen.superlyricapi.model.Line=1,2,3,4,5,6
 com.hchen.superlyricapi.model.Word=1,2,3

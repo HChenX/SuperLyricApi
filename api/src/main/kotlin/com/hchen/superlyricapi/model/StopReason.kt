@@ -12,11 +12,10 @@ package com.hchen.superlyricapi.model
 
 /**
  * 停止原因。
+ *
+ * 暂停不是停止，通过 [State.state] 为 [PlaybackState.PAUSED] 表达。
  */
 enum class StopReason {
-    /** 播放器暂停 */
-    PAUSED,
-
     /** 播放器停止或会话结束 */
     STOPPED,
 

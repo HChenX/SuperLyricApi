@@ -34,9 +34,16 @@ public class LyricBuilderTest {
     }
 
     @Test
-    public void nonPositiveDurationIsRejected() {
+    public void negativeDurationIsRejected() {
         assertThrows(IllegalArgumentException.class,
-            () -> new Lyric("id", 0, Collections.singletonList(new Line("a", 0, 1000))));
+            () -> new Lyric("id", -1, Collections.singletonList(new Line("a", 0, 1000))));
+    }
+
+    @Test
+    public void unknownDurationIsAllowed() {
+        Lyric lyric = new Lyric("id", 0, Collections.singletonList(new Line("a", 0, 1000)));
+
+        assertEquals(0L, lyric.getDuration());
     }
 
     @Test

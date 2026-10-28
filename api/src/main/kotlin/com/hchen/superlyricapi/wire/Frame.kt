@@ -13,11 +13,13 @@ package com.hchen.superlyricapi.wire
 import com.hchen.superlyricapi.model.Lyric
 import com.hchen.superlyricapi.model.State
 import com.hchen.superlyricapi.model.Stop
+import com.hchen.superlyricapi.model.StopReason
 
 /**
  * 线上单帧数据。
  *
- * 帧头为 [u32 MAGIC][u32 FORMAT]，其后是一个 TLV Struct。
+ * 帧头为 [u32 MAGIC][u32 FORMAT]，其后是一个 TLV Struct。单帧上限为 [MAX_SIZE] 字节，
+ * 编码与解码都会检查。
  */
 class Frame private constructor() {
     enum class Kind {
@@ -47,17 +49,32 @@ class Frame private constructor() {
     var stop: Stop? = null
         private set
 
+    /**
+     * 发布方包名，由服务端填写。客户端发出的帧为 null。
+     */
+    @field:Wire(5)
+    var publisher: String? = null
+        private set
+
+    /**
+     * @throws IllegalStateException 编码结果超过 [MAX_SIZE]
+     */
     fun encode(): ByteArray {
         val writer = WireWriter(1024)
         writer.writeInt(MAGIC)
         writer.writeInt(FORMAT)
         WireCodec.writeStruct(writer, this)
-        return writer.toByteArray()
+        val bytes = writer.toByteArray()
+        check(bytes.size <= MAX_SIZE) { "Frame exceeds MAX_SIZE: ${bytes.size}" }
+        return bytes
     }
+
+    override fun toString(): String =
+        "Frame{${kind}, publisher=${publisher}, doc=${doc?.id}, state=${state?.index}}"
 
     companion object {
         /**
-         * 单帧最大字节数。超过此值的载荷在发送前被拒绝。
+         * 单帧最大字节数，入站与出站一致。
          */
         const val MAX_SIZE: Int = 512 * 1024
 
@@ -66,33 +83,42 @@ class Frame private constructor() {
         private const val HEADER_SIZE = 8
 
         @JvmStatic
-        fun full(doc: Lyric, state: State?): Frame = Frame().apply {
+        @JvmOverloads
+        fun full(doc: Lyric, state: State?, publisher: String? = null): Frame = Frame().apply {
             this.kind = Kind.FULL
             this.doc = doc
             this.state = state
+            this.publisher = publisher
         }
 
         @JvmStatic
-        fun state(state: State): Frame = Frame().apply {
+        @JvmOverloads
+        fun state(state: State, publisher: String? = null): Frame = Frame().apply {
             this.kind = Kind.STATE
             this.state = state
+            this.publisher = publisher
         }
 
         @JvmStatic
-        fun stop(stop: Stop): Frame = Frame().apply {
+        @JvmOverloads
+        fun stop(stop: Stop, publisher: String? = null): Frame = Frame().apply {
             this.kind = Kind.STOP
             this.stop = stop
+            this.publisher = publisher
         }
 
         /**
-         * 解析一帧数据。
+         * 解析一帧数据，并校验 kind 与 payload 匹配。
          *
          * @param data 完整帧字节
          * @return 解析结果
-         * @throws WireFormatException 帧头不匹配或数据损坏，调用方应丢弃该帧
+         * @throws WireFormatException 帧头不匹配、数据损坏或 payload 缺失
          */
         @JvmStatic
         fun decode(data: ByteArray): Frame {
+            if (data.size > MAX_SIZE) {
+                throw WireFormatException("Frame exceeds MAX_SIZE: ${data.size}")
+            }
             if (data.size < HEADER_SIZE) {
                 throw WireFormatException("Frame too short: ${data.size}")
             }
@@ -105,9 +131,23 @@ class Frame private constructor() {
 
             val format = reader.readInt()
             if (format != FORMAT) {
-                throw WireFormatException("Unsupported format $format, expected $FORMAT")
+                throw WireFormatException("Unsupported format ${format}, expected $FORMAT")
             }
-            return WireCodec.readStruct(reader, Frame::class.java)
+
+            val frame = WireCodec.readStruct(reader, Frame::class.java)
+            when (frame.kind) {
+                Kind.FULL -> if (frame.doc == null) {
+                    throw WireFormatException("FULL frame without doc")
+                }
+                Kind.STATE -> if (frame.state == null) {
+                    throw WireFormatException("STATE frame without state")
+                }
+                Kind.STOP -> if (frame.stop == null) {
+                    frame.stop = Stop(null, StopReason.STOPPED)
+                }
+                null -> Unit
+            }
+            return frame
         }
     }
 }

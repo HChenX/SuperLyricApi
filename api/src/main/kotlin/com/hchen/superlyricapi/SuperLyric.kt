@@ -26,6 +26,14 @@ object SuperLyric {
     @JvmStatic
     fun isAvailable(): Boolean = BinderHub.transport() != null
 
+    /**
+     * 查询服务端实现的 API 版本。
+     *
+     * @return v4 服务端返回的版本号；3.x 服务端或服务不可用时为 0
+     */
+    @JvmStatic
+    fun serverApiVersion(): Int = BinderHub.transport()?.apiVersion() ?: 0
+
     @JvmStatic
     fun publisher(): Publisher = PublisherImpl
 

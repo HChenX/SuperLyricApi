@@ -29,6 +29,9 @@ class State private constructor() {
     var position: Long = 0L
         private set
 
+    /**
+     * 播放倍速。大于 0 为实际倍速；小于等于 0 表示冻结或未知。
+     */
     @field:Wire(4)
     var speed: Float = 1f
         private set
@@ -47,13 +50,14 @@ class State private constructor() {
         this.id = id
         this.index = index
         this.position = position
-        this.speed = if (speed <= 0f) 1f else speed
+        this.speed = speed
         this.state = state
     }
 
     override fun equals(other: Any?): Boolean {
-        return other is State && index == other.index && position == other.position &&
-                speed.compareTo(other.speed) == 0 && id == other.id && state == other.state
+        if (other !is State) return false
+        return index == other.index && position == other.position &&
+            speed.compareTo(other.speed) == 0 && id == other.id && state == other.state
     }
 
     override fun hashCode(): Int = Objects.hash(id, index, position, speed, state)

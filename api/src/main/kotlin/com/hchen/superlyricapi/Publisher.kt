@@ -29,7 +29,10 @@ interface Publisher {
      */
     fun clear()
 
-    enum class PublishResult(internal val code: Int) {
+    /**
+     * 发布结果。服务端返回对应的整数值，未知值按 [REJECTED] 处理。
+     */
+    enum class PublishResult(val code: Int) {
         OK(0),
 
         /** 服务端未安装或不可达 */
@@ -38,11 +41,27 @@ interface Publisher {
         /** 编码后的帧超过 [com.hchen.superlyricapi.wire.Frame.MAX_SIZE] */
         PAYLOAD_TOO_LARGE(2),
 
-        /** 服务端拒绝，例如与当前播放曲目不一致 */
+        /** 服务端拒绝，未细分原因 */
         REJECTED(3),
+
+        /** title 或 duration 与当前播放会话不一致 */
+        REJECTED_TRACK_MISMATCH(4),
+
+        /** 帧无法解析，或 payload 不变式不成立 */
+        REJECTED_MALFORMED(5),
+
+        /** 发布方未登记 */
+        REJECTED_NOT_REGISTERED(6),
+
+        /** 超出发布方配额 */
+        REJECTED_QUOTA(7),
         ;
 
-        internal companion object {
+        companion object {
+            /**
+             * 把服务端返回的整数映射为枚举，未知值回落 [REJECTED]。
+             */
+            @JvmStatic
             fun fromCode(code: Int): PublishResult =
                 entries.firstOrNull { it.code == code } ?: REJECTED
         }

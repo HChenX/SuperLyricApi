@@ -64,7 +64,7 @@ public class LegacyProjectTest {
         assertEquals(2, frame.getDoc().getLineCount());
         assertEquals("Artist", frame.getDoc().getArtist());
         assertEquals(1, frame.getDoc().getLines().get(1).getWords().size());
-        assertEquals("romaji", frame.getDoc().getLines().get(1).getSecondary());
+        assertEquals("romaji", frame.getDoc().getLines().get(1).getPhonetic());
     }
 
     @Test
