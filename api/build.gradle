@@ -56,9 +56,7 @@ android {
     }
 
     publishing {
-        singleVariant("release") {
-            withSourcesJar()
-        }
+        singleVariant("release")
     }
 
     buildFeatures {
@@ -89,6 +87,7 @@ android {
 }
 
 tasks.register('androidSourcesJar', Jar) {
+    archiveClassifier = 'sources'
     from android.sourceSets.main.java.srcDirs
     from 'src/main/kotlin'
 }
