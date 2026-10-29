@@ -198,7 +198,10 @@ generation, use `SuperLyric.serverApiVersion()`; it returns 0 for 3.x or an unav
 |---|---|
 | 40 | every frame carries publisher, and a stop event carries its own copy in Stop; pause is expressed by State only; `PublishResult` includes codes 4 to 7; `duration` 0 means unknown; `registerListener` returns a result code |
 
-## Adding a Field
+## Adding a Field (maintainers)
+
+The steps below are for maintaining the library. The `Wire` annotation is internal; consumers
+cannot and should not add fields to the models.
 
 Add a field annotated with `@Wire` to a model class. The codec, AIDL and compatibility layer need
 no changes.

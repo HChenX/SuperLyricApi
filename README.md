@@ -193,7 +193,9 @@ SuperLyric.receiver().unregisterAll();
 |---|---|
 | 40 | 所有帧携带 publisher，停止事件另在自己的 Stop 中携带一份；暂停只通过 State 表达；`PublishResult` 含 4 到 7 的拒绝码；`duration` 为 0 表示未知；`registerListener` 返回注册结果码 |
 
-## 扩展字段
+## 扩展字段（库维护）
+
+以下步骤面向库维护者。`Wire` 注解是 internal 的，使用方无法也不应给模型加字段。
 
 在模型类上添加带 `@Wire` 注解的字段即可，无需修改编解码、AIDL 或兼容层：
 

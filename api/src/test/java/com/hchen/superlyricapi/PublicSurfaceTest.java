@@ -63,7 +63,6 @@ public class PublicSurfaceTest {
         ROOT_PACKAGE + ".model.StopReason",
         // 线上格式，服务端使用
         ROOT_PACKAGE + ".wire.Frame",
-        ROOT_PACKAGE + ".wire.Wire",
         ROOT_PACKAGE + ".wire.WireFormatException",
         ROOT_PACKAGE + ".legacy.LegacyV37"
     );

@@ -11,7 +11,7 @@
 package com.hchen.superlyricapi.wire
 
 /**
- * 标记参与线上编解码的字段。
+ * 标记参与线上编解码的字段，仅供本库定义模型时使用。
  *
  * 同一类内字段号唯一，只能新增，不能修改或复用。字段名可以修改，线上数据只使用字段号。
  *
@@ -20,4 +20,4 @@ package com.hchen.superlyricapi.wire
  */
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.FIELD)
-annotation class Wire(val value: Int)
+internal annotation class Wire(val value: Int)

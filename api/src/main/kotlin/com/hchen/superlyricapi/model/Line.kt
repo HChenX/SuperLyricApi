@@ -81,10 +81,6 @@ class Line private constructor() {
         this.phonetic = phonetic
     }
 
-    fun hasTranslation(): Boolean = !translation.isNullOrEmpty()
-
-    fun hasPhonetic(): Boolean = !phonetic.isNullOrEmpty()
-
     override fun equals(other: Any?): Boolean {
         if (other !is Line) return false
         return start == other.start && end == other.end &&
