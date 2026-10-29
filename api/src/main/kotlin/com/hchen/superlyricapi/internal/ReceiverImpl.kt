@@ -24,11 +24,10 @@ import java.util.concurrent.CopyOnWriteArrayList
  * [Receiver] 的实现。
  *
  * 锁只用于交换字段，任何 binder 调用都在锁外进行，避免与服务端广播互锁。
+ * 服务寄生于系统进程，掉线不做后台重试：下一次 register 或 latest 会重新探测并重绑。
  */
 internal object ReceiverImpl : Receiver {
     private const val TAG = "SuperLyric"
-    private const val RECOVER_DELAY_MS = 5_000L
-    private const val RETRY_DELAY_MS = 15_000L
 
     private val lock = Any()
     private val listeners = CopyOnWriteArrayList<LyricListener>()
@@ -36,15 +35,15 @@ internal object ReceiverImpl : Receiver {
     private var cache: LyricCache? = null
     private var bound: Transport? = null
     private var lastStopValue: Stop? = null
-    private var observing = false
 
     override fun register(listener: LyricListener): Receiver.RegisterResult {
-        ensureObserver()
         listeners.addIfAbsent(listener)
 
         val transport = BinderHub.transport() ?: return Receiver.RegisterResult.SERVICE_UNAVAILABLE
-        if (synchronized(lock) { bound } != null) return Receiver.RegisterResult.OK
+        if (synchronized(lock) { bound } === transport) return Receiver.RegisterResult.OK
 
+        // 绑定为空，或服务重启后换成了新的实例：先清理旧连接再重绑
+        unbind()
         return bind(transport)
     }
 
@@ -62,7 +61,7 @@ internal object ReceiverImpl : Receiver {
     override fun isRegistered(listener: LyricListener): Boolean = listeners.contains(listener)
 
     override fun latest(): LyricView? {
-        val transport = synchronized(lock) { bound } ?: BinderHub.transport() ?: return null
+        val transport = BinderHub.transport() ?: return null
         val frame = try {
             transport.latest()
         } catch (e: RemoteException) {
@@ -70,21 +69,26 @@ internal object ReceiverImpl : Receiver {
             null
         } ?: return null
 
-        if (frame.kind == Frame.Kind.STOP) return null
+        if (frame.kind == Frame.Kind.STOP) {
+            synchronized(lock) {
+                lastStopValue = frame.stop ?: Stop(null, StopReason.STOPPED)
+            }
+            return null
+        }
 
         val active = synchronized(lock) { cache } ?: LyricCache(transport, ::deliverView).also {
             synchronized(lock) { cache = it }
         }
         val view = active.resolve(frame)
-        if (view != null) synchronized(lock) { lastStopValue = null }
+        if (view != null) {
+            synchronized(lock) { lastStopValue = null }
+        }
         return view
     }
 
     override fun lastStop(): Stop? = synchronized(lock) { lastStopValue }
 
     private fun bind(transport: Transport): Receiver.RegisterResult {
-        if (synchronized(lock) { bound } != null) return Receiver.RegisterResult.OK
-
         val nextCache = LyricCache(transport, ::deliverView)
         synchronized(lock) {
             bound = transport
@@ -162,37 +166,5 @@ internal object ReceiverImpl : Receiver {
                 Log.e(TAG, "LyricListener threw", t)
             }
         }
-    }
-
-    private fun ensureObserver() {
-        if (observing) return
-        observing = true
-
-        BinderHub.addObserver { transport ->
-            if (transport != null) return@addObserver
-            // 服务断开：丢弃失效绑定，稍后重连
-            synchronized(lock) {
-                bound = null
-                cache = null
-            }
-            scheduleRecover(RECOVER_DELAY_MS)
-        }
-    }
-
-    private fun scheduleRecover(delayMs: Long) {
-        if (listeners.isEmpty()) return
-        Background.schedule(delayMs) { recover() }
-    }
-
-    private fun recover() {
-        if (listeners.isEmpty()) return
-        if (synchronized(lock) { bound } != null) return
-
-        val transport = BinderHub.transport()
-        if (transport == null) {
-            scheduleRecover(RETRY_DELAY_MS)
-            return
-        }
-        bind(transport)
     }
 }

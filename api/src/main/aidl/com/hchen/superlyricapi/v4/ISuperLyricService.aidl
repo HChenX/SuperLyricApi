@@ -44,8 +44,10 @@ interface ISuperLyricService {
     void clear();
 
     /**
-     * 注册帧监听器。注册成功后立即推送一次当前状态：有在播会话推送 FULL，
-     * 无在播但存在最近一次停止则推送 STOP，两者皆无则不推送。
+     * 注册帧监听器。
+     *
+     * 若注册时存在在播会话，立即推送一次 FULL；否则不推送任何帧，
+     * 客户端可调用 latest 主动拉取，或等待下一次状态变化。
      *
      * @param listener 监听器
      * @return RegisterResult 的 int 值
@@ -60,9 +62,9 @@ interface ISuperLyricService {
     void unregisterListener(in ILyricFrameListener listener);
 
     /**
-     * 获取当前歌词快照。
+     * 获取最近一次会话的终态。
      *
-     * @return FULL 帧，包含当前状态；无播放时为 null
+     * @return 在播时返回 FULL；会话已结束时返回 STOP；从未有会话时为 null
      */
     byte[] latest();
 

@@ -11,21 +11,16 @@
 package com.hchen.superlyricapi.internal
 
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 /**
- * 库内部的后台线程，用于自愈拉取与断线重连。
+ * 库内部的后台线程，用于异步自愈拉取。
  */
 internal object Background {
-    private val executor = Executors.newSingleThreadScheduledExecutor { runnable ->
+    private val executor = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "SuperLyric-worker").apply { isDaemon = true }
     }
 
     fun execute(task: () -> Unit) {
         executor.execute(task)
-    }
-
-    fun schedule(delayMs: Long, task: () -> Unit) {
-        executor.schedule(task, delayMs, TimeUnit.MILLISECONDS)
     }
 }

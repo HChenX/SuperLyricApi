@@ -21,7 +21,7 @@ interface Receiver {
     /**
      * 注册监听器。同一个监听器重复注册不会重复投递。
      *
-     * 服务端在注册成功后立即推送一次当前状态：有在播会话则推送 FULL，无在播但存在最近一次停止则推送 STOP。
+     * 注册时若有在播会话，服务端会立即推送一次 FULL；若没有则不推送，可调用 [latest] 主动拉取。
      *
      * @param listener 歌词回调
      * @return 注册结果
@@ -49,9 +49,11 @@ interface Receiver {
     fun isRegistered(listener: LyricListener): Boolean
 
     /**
-     * 获取当前的歌词状态。
+     * 主动拉取最近一次会话的终态。
      *
-     * @return 当前状态；无播放或服务不可用时为 null
+     * 会话已结束时会把 STOP 记入 [lastStop] 并返回 null。
+     *
+     * @return 当前状态；无会话或服务不可用时为 null
      */
     fun latest(): LyricView?
 

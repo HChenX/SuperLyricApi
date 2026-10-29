@@ -15,10 +15,12 @@ import android.os.IBinder
 import android.os.RemoteException
 import android.os.ServiceManager
 import android.util.Log
-import java.util.concurrent.CopyOnWriteArrayList
 
 /**
- * 服务定位与链路死亡处理。
+ * 服务定位。
+ *
+ * 服务寄生于系统进程，正常情况下不会掉线，因此这里不做后台重试：
+ * binder 死亡后仅清空缓存，下一次调用重新探测。
  */
 @SuppressLint("SoonBlockedPrivateApi", "DiscouragedPrivateApi", "PrivateApi")
 internal object BinderHub {
@@ -32,8 +34,6 @@ internal object BinderHub {
     @Volatile
     private var injected: Transport? = null
 
-    private val observers = CopyOnWriteArrayList<(Transport?) -> Unit>()
-
     /**
      * 获取可用的传输实现。结果会被缓存，服务断开后自动失效。
      *
@@ -43,32 +43,15 @@ internal object BinderHub {
         injected?.let { return it }
         cached?.let { return it }
 
-        var probed = false
-        val result = synchronized(this) {
-            if (cached == null) {
-                cached = probe()
-                probed = true
-            }
-            cached
+        return synchronized(this) {
+            cached ?: probe().also { cached = it }
         }
-        if (probed) notifyObservers(result)
-        return result
-    }
-
-    /**
-     * 订阅传输变化。服务断开时以 null 通知。
-     */
-    fun addObserver(observer: (Transport?) -> Unit) {
-        observers += observer
     }
 
     fun reset() {
-        val previous = synchronized(this) {
-            val current = cached
+        synchronized(this) {
             cached = null
-            current
         }
-        if (previous != null) notifyObservers(null)
     }
 
     /**
@@ -79,18 +62,10 @@ internal object BinderHub {
         cached = null
     }
 
-    private fun notifyObservers(transport: Transport?) {
-        for (observer in observers) {
-            runCatching { observer(transport) }
-        }
-    }
-
     private fun probe(): Transport? {
-        if (!V4Transport.isBlocked()) {
-            probeService(SERVICE_V4) { binder ->
-                V4Transport.probe(binder)?.also { watch(binder) }
-            }?.let { return it }
-        }
+        probeService(SERVICE_V4) { binder ->
+            V4Transport.probe(binder)?.also { watch(binder) }
+        }?.let { return it }
 
         probeService(SERVICE_LEGACY) { binder ->
             LegacyTransport.probe(binder)?.also {
@@ -113,7 +88,6 @@ internal object BinderHub {
         try {
             binder.linkToDeath({
                 synchronized(this) { cached = null }
-                notifyObservers(null)
             }, 0)
         } catch (ignored: RemoteException) {
         }
