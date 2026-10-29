@@ -5,4 +5,4 @@ com.hchen.superlyricapi.model.Lyric=1,2,3,4,5,6
 com.hchen.superlyricapi.model.Line=1,2,3,4,5,6
 com.hchen.superlyricapi.model.Word=1,2,3
 com.hchen.superlyricapi.model.State=1,2,3,4,5
-com.hchen.superlyricapi.model.Stop=1,2
+com.hchen.superlyricapi.model.Stop=1,2,3

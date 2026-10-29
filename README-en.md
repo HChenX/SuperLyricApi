@@ -122,8 +122,9 @@ SuperLyric.receiver().register(object : LyricListener {
         val position = view.position
     }
 
-    override fun onStop(stop: Stop, publisher: String?) {
+    override fun onStop(stop: Stop) {
         val reason = stop.reason
+        val publisher = stop.publisher
     }
 })
 
@@ -144,8 +145,8 @@ SuperLyric.receiver().register(new LyricListener() {
     }
 
     @Override
-    public void onStop(Stop stop, String publisher) {
-        // STOPPED / ERROR / PROCESS_DIED / CLEARED; pause does not call onStop
+    public void onStop(Stop stop) {
+        // stop.getReason() and stop.getPublisher(); pause does not call onStop
     }
 });
 ```
@@ -158,7 +159,7 @@ If a session is playing at registration time, one full state frame arrives immed
 nothing is pushed.
 
 `latest()` pulls the terminal state of the most recent session: a view while playing, otherwise the
-reason goes into `lastStop()` and the call returns null. A new lyric clears `lastStop()`.
+reason and its publisher go into `lastStop()` and the call returns null. A new lyric clears `lastStop()`.
 
 `position` is a snapshot taken when the update was pushed. For continuous updates, extrapolate
 locally with `SystemClock.elapsedRealtime()` and `speed`.
@@ -195,7 +196,7 @@ generation, use `SuperLyric.serverApiVersion()`; it returns 0 for 3.x or an unav
 
 | Version | Semantics |
 |---|---|
-| 40 | every frame carries publisher; pause is expressed by State only; `PublishResult` includes codes 4 to 7; `duration` 0 means unknown; `registerListener` returns a result code |
+| 40 | every frame carries publisher, and a stop event carries its own copy in Stop; pause is expressed by State only; `PublishResult` includes codes 4 to 7; `duration` 0 means unknown; `registerListener` returns a result code |
 
 ## Adding a Field
 

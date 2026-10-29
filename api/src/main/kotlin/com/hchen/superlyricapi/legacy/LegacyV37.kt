@@ -104,7 +104,7 @@ object LegacyV37 {
                 publisher,
             )
         }
-        return Frame.stop(Stop(idOf(data), StopReason.STOPPED), publisher)
+        return Frame.stop(Stop(idOf(data), StopReason.STOPPED, publisher))
     }
 
     private fun toLyric(data: SuperLyricData): Lyric? {

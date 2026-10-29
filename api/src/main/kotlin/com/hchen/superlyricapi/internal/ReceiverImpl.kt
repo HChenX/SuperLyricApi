@@ -144,12 +144,12 @@ internal object ReceiverImpl : Receiver {
         val publisher = frame.publisher
 
         if (frame.kind == Frame.Kind.STOP) {
-            val stop = frame.stop ?: Stop(null, StopReason.STOPPED)
+            val stop = frame.stop ?: Stop(null, StopReason.STOPPED, publisher)
             synchronized(lock) { lastStopValue = stop }
             current.clear()
             for (listener in listeners) {
                 try {
-                    listener.onStop(stop, publisher)
+                    listener.onStop(stop)
                 } catch (t: Throwable) {
                     Log.e(TAG, "LyricListener threw", t)
                 }

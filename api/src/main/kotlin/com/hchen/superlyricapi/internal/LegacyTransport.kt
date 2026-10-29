@@ -56,7 +56,7 @@ internal class LegacyTransport(private val manager: ISuperLyricManager) : Transp
             }
 
             override fun onStop(publisher: String?, data: SuperLyricData?) {
-                sink.onFrame(Frame.stop(Stop(data?.lyricId, StopReason.STOPPED), publisher))
+                sink.onFrame(Frame.stop(Stop(data?.lyricId, StopReason.STOPPED, publisher)))
             }
         }
         receiver = stub

@@ -50,6 +50,8 @@ class Frame private constructor() {
 
     /**
      * 发布方包名，由服务端填写。客户端发出的帧为 null。
+     *
+     * STOP 帧由 [Stop.publisher] 派生，两者始终一致。
      */
     @field:Wire(5)
     var publisher: String? = null
@@ -99,11 +101,11 @@ class Frame private constructor() {
         }
 
         @JvmStatic
-        @JvmOverloads
-        fun stop(stop: Stop, publisher: String? = null): Frame = Frame().apply {
+        fun stop(stop: Stop): Frame = Frame().apply {
             this.kind = Kind.STOP
             this.stop = stop
-            this.publisher = publisher
+            // 停止事件的来源由 Stop 自己携带，帧级字段与之保持一致
+            this.publisher = stop.publisher
         }
 
         /**

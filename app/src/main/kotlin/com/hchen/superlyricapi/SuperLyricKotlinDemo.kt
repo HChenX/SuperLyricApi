@@ -41,8 +41,9 @@ object SuperLyricKotlinDemo {
                 val upcoming = view.upcoming
             }
 
-            override fun onStop(stop: Stop, publisher: String?) {
+            override fun onStop(stop: Stop) {
                 val reason = stop.reason
+                val publisher = stop.publisher
             }
         })
 

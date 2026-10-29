@@ -72,7 +72,7 @@ public class SuperLyricDemo {
             }
 
             @Override
-            public void onStop(Stop stop, String publisher) {
+            public void onStop(Stop stop) {
                 // 原因：PAUSED / STOPPED / ERROR / PROCESS_DIED / CLEARED
             }
         });

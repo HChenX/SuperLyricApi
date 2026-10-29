@@ -62,15 +62,13 @@ class ReceiverTest {
     private class Recording : LyricListener {
         val views = ArrayList<LyricView>()
         val stops = ArrayList<Stop>()
-        var lastPublisher: String? = null
 
         override fun onLyric(view: LyricView) {
             views += view
         }
 
-        override fun onStop(stop: Stop, publisher: String?) {
+        override fun onStop(stop: Stop) {
             stops += stop
-            lastPublisher = publisher
         }
     }
 
@@ -140,9 +138,10 @@ class ReceiverTest {
 
         assertNull(receiver.lastStop())
 
-        fake.emit(Frame.stop(Stop("t", StopReason.CLEARED), "com.example.music"))
+        fake.emit(Frame.stop(Stop("t", StopReason.CLEARED, "com.example.music")))
         assertEquals(StopReason.CLEARED, receiver.lastStop()?.reason)
-        assertEquals("com.example.music", listener.lastPublisher)
+        assertEquals("com.example.music", receiver.lastStop()?.publisher)
+        assertEquals("com.example.music", listener.stops.last().publisher)
 
         fake.emit(fullFrame())
         assertNull(receiver.lastStop())

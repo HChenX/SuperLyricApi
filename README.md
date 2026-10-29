@@ -117,8 +117,9 @@ SuperLyric.receiver().register(object : LyricListener {
         val state = view.state
     }
 
-    override fun onStop(stop: Stop, publisher: String?) {
+    override fun onStop(stop: Stop) {
         val reason = stop.reason
+        val publisher = stop.publisher
     }
 })
 
@@ -143,8 +144,8 @@ SuperLyric.receiver().register(new LyricListener() {
     }
 
     @Override
-    public void onStop(Stop stop, String publisher) {
-        // STOPPED / ERROR / PROCESS_DIED / CLEARED；暂停不触发 onStop
+    public void onStop(Stop stop) {
+        // stop.getReason() 与 stop.getPublisher()；暂停不触发 onStop
     }
 });
 
@@ -156,7 +157,7 @@ SuperLyric.receiver().unregisterAll();
 
 注册时若服务端正在播放，会立即收到一帧完整状态；没有在播会话则不会主动推送。
 
-`latest()` 主动拉取最近一次会话的终态：在播时返回视图；会话已结束时把原因记入 `lastStop()` 并返回 null；从未有会话时同样返回 null。收到新的歌词后 `lastStop()` 自动清空。
+`latest()` 主动拉取最近一次会话的终态：在播时返回视图；会话已结束时把原因与发布方记入 `lastStop()` 并返回 null；从未有会话时同样返回 null。收到新的歌词后 `lastStop()` 自动清空。
 
 `position` 是推送时刻的快照。需要连续更新时，可结合 `SystemClock.elapsedRealtime()` 与 `speed` 在本地推算。
 
@@ -190,7 +191,7 @@ SuperLyric.receiver().unregisterAll();
 
 | 版本 | 语义基线 |
 |---|---|
-| 40 | 所有帧携带 publisher；暂停只通过 State 表达；`PublishResult` 含 4 到 7 的拒绝码；`duration` 为 0 表示未知；`registerListener` 返回注册结果码 |
+| 40 | 所有帧携带 publisher，停止事件另在自己的 Stop 中携带一份；暂停只通过 State 表达；`PublishResult` 含 4 到 7 的拒绝码；`duration` 为 0 表示未知；`registerListener` 返回注册结果码 |
 
 ## 扩展字段
 
