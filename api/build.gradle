@@ -56,7 +56,9 @@ android {
     }
 
     publishing {
-        singleVariant("release")
+        singleVariant("release") {
+            withSourcesJar()
+        }
     }
 
     buildFeatures {
@@ -86,12 +88,6 @@ android {
     }
 }
 
-tasks.register('androidSourcesJar', Jar) {
-    archiveClassifier = 'sources'
-    from android.sourceSets.main.java.srcDirs
-    from 'src/main/kotlin'
-}
-
 dependencies {
     compileOnly project(':hidden-api')
     implementation libs.annotation
@@ -108,8 +104,6 @@ afterEvaluate {
                 groupId = 'com.github.HChenX'
                 artifactId = 'SuperLyricApi'
                 version = defVersionName
-
-                artifact androidSourcesJar
 
                 pom {
                     packaging = "aar"
