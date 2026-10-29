@@ -44,7 +44,7 @@ class LyricCacheTest {
 
         override fun clear() = Unit
 
-        override fun register(sink: FrameSink) = Unit
+        override fun register(sink: FrameSink): Int = 0
 
         override fun unregister() = Unit
 
@@ -76,11 +76,12 @@ class LyricCacheTest {
     fun fullFrameProducesAView() {
         val cache = LyricCache(Fake()) { }
 
-        val view = cache.resolve(Frame.full(doc("s1"), state("s1", 0, 0)))
+        val view = cache.resolve(Frame.full(doc("s1"), state("s1", 0, 0), "com.example.music"))
 
         assertNotNull(view)
         assertEquals("s1", view!!.lyric.id)
         assertEquals("a", view.line!!.text)
+        assertEquals("com.example.music", view.publisher)
     }
 
     @Test

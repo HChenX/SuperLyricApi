@@ -33,6 +33,7 @@ internal class LyricCache(
     private var position = 0L
     private var speed = 1f
     private var state: PlaybackState? = null
+    private var publisher: String? = null
     private var healing = false
 
     fun resolve(frame: Frame?): LyricView? {
@@ -44,13 +45,17 @@ internal class LyricCache(
                     clear()
                     return null
                 }
-                Frame.Kind.FULL -> acceptFull(source)
+                Frame.Kind.FULL -> {
+                    publisher = source.publisher ?: publisher
+                    acceptFull(source)
+                }
                 Frame.Kind.STATE -> {
                     val snapshot = source.state ?: return null
                     if (!matches(snapshot)) {
                         scheduleHeal(snapshot)
                         return null
                     }
+                    publisher = source.publisher ?: publisher
                     apply(snapshot)
                 }
             }
@@ -65,6 +70,7 @@ internal class LyricCache(
             position = 0L
             speed = 1f
             state = null
+            publisher = null
         }
     }
 
@@ -110,6 +116,7 @@ internal class LyricCache(
             val remoteDoc = remote?.doc
             if (remoteDoc != null && (snapshot.id == null || snapshot.id == remoteDoc.id)) {
                 doc = remoteDoc
+                publisher = remote.publisher ?: publisher
                 apply(snapshot)
                 build()
             } else {
@@ -137,7 +144,7 @@ internal class LyricCache(
 
     private fun build(): LyricView? {
         val current = doc ?: return null
-        return LyricView(current, index, position, speed, state)
+        return LyricView(current, index, position, speed, state, publisher)
     }
 
     private companion object {

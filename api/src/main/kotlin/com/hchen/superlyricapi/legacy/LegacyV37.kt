@@ -70,10 +70,12 @@ object LegacyV37 {
      * 3.x 不携带播放状态与倍速：state 置 null 表示未知，speed 按 1.0 处理。
      *
      * @param data 3.x 数据，可为 null
+     * @param publisher 3.x 回调携带的发布方包名，可为 null
      * @return 帧；无法转换时为 null
      */
     @JvmStatic
-    fun lift(data: SuperLyricData?): Frame? {
+    @JvmOverloads
+    fun lift(data: SuperLyricData?, publisher: String? = null): Frame? {
         if (data == null) return null
 
         if (data.hasAllLyrics()) {
@@ -86,6 +88,7 @@ object LegacyV37 {
             return Frame.full(
                 doc,
                 State(doc.id, index, data.position.coerceAtLeast(0L), 1f, null),
+                publisher,
             )
         }
 
@@ -98,9 +101,10 @@ object LegacyV37 {
                     1f,
                     null,
                 ),
+                publisher,
             )
         }
-        return Frame.stop(Stop(idOf(data), StopReason.STOPPED))
+        return Frame.stop(Stop(idOf(data), StopReason.STOPPED), publisher)
     }
 
     private fun toLyric(data: SuperLyricData): Lyric? {

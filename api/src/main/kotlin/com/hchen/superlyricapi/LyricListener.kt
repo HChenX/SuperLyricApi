@@ -30,6 +30,7 @@ interface LyricListener {
      * 播放会话结束时调用。暂停不会触发该回调，请以 [LyricView.state] 判断。
      *
      * @param stop 停止事件
+     * @param publisher 发布方包名，未知时为 null
      */
-    fun onStop(stop: Stop)
+    fun onStop(stop: Stop, publisher: String?)
 }

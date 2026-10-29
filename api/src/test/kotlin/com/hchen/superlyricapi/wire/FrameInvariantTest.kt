@@ -12,8 +12,6 @@ package com.hchen.superlyricapi.wire
 
 import com.hchen.superlyricapi.model.Line
 import com.hchen.superlyricapi.model.Lyric
-import com.hchen.superlyricapi.model.StopReason
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
@@ -66,12 +64,43 @@ class FrameInvariantTest {
     }
 
     @Test
-    fun stopFrameWithoutStopGetsADefaultReason() {
+    fun stopFrameWithoutStopIsRejected() {
         val bytes = encodeRaw { kind = Frame.Kind.STOP }
 
-        val frame = Frame.decode(bytes)
+        assertThrows(WireFormatException::class.java) { Frame.decode(bytes) }
+    }
 
-        assertEquals(StopReason.STOPPED, frame.stop?.reason)
+    /**
+     * 一个把 int 字段写成 NULL 的 State，用来验证类型不匹配被包装成 WireFormatException。
+     */
+    class BrokenState {
+        @field:Wire(1)
+        var id: String? = null
+
+        @field:Wire(2)
+        var index: Int? = null
+    }
+
+    class BrokenStateFrame {
+        @field:Wire(1)
+        var kind: Frame.Kind? = null
+
+        @field:Wire(3)
+        var state: BrokenState? = null
+    }
+
+    @Test
+    fun typeMismatchIsWrappedAsFormatException() {
+        val raw = BrokenStateFrame().apply {
+            kind = Frame.Kind.STATE
+            state = BrokenState().apply { id = "x" }
+        }
+        val writer = WireWriter(64)
+        writer.writeInt(0x534C5904)
+        writer.writeInt(1)
+        WireCodec.writeStruct(writer, raw)
+
+        assertThrows(WireFormatException::class.java) { Frame.decode(writer.toByteArray()) }
     }
 
     @Test

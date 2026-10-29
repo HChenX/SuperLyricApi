@@ -44,13 +44,13 @@ internal class V4Transport(private val service: ISuperLyricService) : Transport 
         guard { service.clear() }
     }
 
-    override fun register(sink: FrameSink) {
+    override fun register(sink: FrameSink): Int {
         val stub = object : ILyricFrameListener.Stub() {
             override fun onFrame(frame: ByteArray) {
                 val decoded = try {
                     Frame.decode(frame)
-                } catch (e: WireFormatException) {
-                    Log.w(TAG, "Dropping malformed frame: ${e.message}")
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Dropping malformed frame: ${t.message}")
                     return
                 }
 
@@ -65,7 +65,7 @@ internal class V4Transport(private val service: ISuperLyricService) : Transport 
             }
         }
         listener = stub
-        guard { service.registerListener(stub) }
+        return guard { service.registerListener(stub) }
     }
 
     override fun unregister() {

@@ -36,6 +36,8 @@ internal class WireField(val id: Int, private val member: Field) {
         val value = WireCodec.readTagged(reader, tag, member.type, elementType)
         try {
             member.set(target, value)
+        } catch (e: IllegalArgumentException) {
+            throw WireFormatException("Type mismatch for $name", e)
         } catch (e: IllegalAccessException) {
             throw WireFormatException("Cannot write $name", e)
         }

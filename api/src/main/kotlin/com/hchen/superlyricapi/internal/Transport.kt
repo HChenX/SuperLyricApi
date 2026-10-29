@@ -24,8 +24,13 @@ internal interface Transport {
     @Throws(RemoteException::class)
     fun clear()
 
+    /**
+     * 注册帧接收器。
+     *
+     * @return Receiver.RegisterResult 的整数值
+     */
     @Throws(RemoteException::class)
-    fun register(sink: FrameSink)
+    fun register(sink: FrameSink): Int
 
     @Throws(RemoteException::class)
     fun unregister()

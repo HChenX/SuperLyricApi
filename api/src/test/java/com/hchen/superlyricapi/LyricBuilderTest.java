@@ -82,7 +82,7 @@ public class LyricBuilderTest {
             new Line("b", 1000, 2000),
             new Line("c", 2000, 3000)));
 
-        LyricView view = new LyricView(lyric, 1, 1500, 1f, PlaybackState.PLAYING);
+        LyricView view = new LyricView(lyric, 1, 1500, 1f, PlaybackState.PLAYING, null);
 
         assertEquals("b", view.getLine().getText());
         assertEquals(1, view.getPlayed().size());

@@ -122,7 +122,7 @@ SuperLyric.receiver().register(object : LyricListener {
         val position = view.position
     }
 
-    override fun onStop(stop: Stop) {
+    override fun onStop(stop: Stop, publisher: String?) {
         val reason = stop.reason
     }
 })
@@ -144,8 +144,8 @@ SuperLyric.receiver().register(new LyricListener() {
     }
 
     @Override
-    public void onStop(Stop stop) {
-        // PAUSED / STOPPED / ERROR / PROCESS_DIED / CLEARED
+    public void onStop(Stop stop, String publisher) {
+        // STOPPED / ERROR / PROCESS_DIED / CLEARED; pause does not call onStop
     }
 });
 ```
@@ -179,12 +179,16 @@ be mixed:
 | Client | Server | Result |
 |---|---|---|
 | 4.0 | 4.0 | full feature set |
-| 4.0 | 3.x | published payloads are converted to 3.x format; no speed, no stop reason |
+| 4.0 | 3.x | payloads are converted to and from 3.x format; state is null (unknown), publisher comes from the 3.x callback |
 | 3.x | 4.0 | the server emits 3.x payloads |
 | 3.x | 3.x | unchanged |
 
-The client detects server capability by checking whether `super_lyric.v4` exists. No version
-numbers are involved.
+The client tells generations apart by service name: `super_lyric.v4` means 4.x. Within a
+generation, use `SuperLyric.serverApiVersion()`; it returns 0 for 3.x or an unavailable service.
+
+| Version | Semantics |
+|---|---|
+| 40 | every frame carries publisher; pause is expressed by State only; `PublishResult` includes codes 4 to 7; `duration` 0 means unknown; `registerListener` returns a result code |
 
 ## Adding a Field
 

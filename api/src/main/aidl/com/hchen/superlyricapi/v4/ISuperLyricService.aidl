@@ -44,11 +44,13 @@ interface ISuperLyricService {
     void clear();
 
     /**
-     * 注册帧监听器。注册成功后立即收到一帧当前状态。
+     * 注册帧监听器。注册成功后立即推送一次当前状态：有在播会话推送 FULL，
+     * 无在播但存在最近一次停止则推送 STOP，两者皆无则不推送。
      *
      * @param listener 监听器
+     * @return RegisterResult 的 int 值
      */
-    void registerListener(in ILyricFrameListener listener);
+    int registerListener(in ILyricFrameListener listener);
 
     /**
      * 解除监听器注册。

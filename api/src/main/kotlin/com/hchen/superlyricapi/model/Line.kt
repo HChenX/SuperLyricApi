@@ -76,7 +76,7 @@ class Line private constructor() {
         this.text = text
         this.start = start
         this.end = end
-        this.words = words?.toList()
+        this.words = words?.takeIf { it.isNotEmpty() }?.toList()
         this.translation = translation
         this.phonetic = phonetic
     }

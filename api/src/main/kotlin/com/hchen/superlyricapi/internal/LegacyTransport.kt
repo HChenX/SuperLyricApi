@@ -18,6 +18,7 @@ import android.util.Log
 import com.hchen.superlyricapi.ISuperLyricManager
 import com.hchen.superlyricapi.ISuperLyricReceiver
 import com.hchen.superlyricapi.Publisher
+import com.hchen.superlyricapi.Receiver
 import com.hchen.superlyricapi.SuperLyricData
 import com.hchen.superlyricapi.legacy.LegacyV37
 import com.hchen.superlyricapi.model.Lyric
@@ -48,18 +49,19 @@ internal class LegacyTransport(private val manager: ISuperLyricManager) : Transp
         manager.sendStop(SuperLyricData())
     }
 
-    override fun register(sink: FrameSink) {
+    override fun register(sink: FrameSink): Int {
         val stub = object : ISuperLyricReceiver.Stub() {
             override fun onLyric(publisher: String?, data: SuperLyricData?) {
-                LegacyV37.lift(data)?.let(sink::onFrame)
+                LegacyV37.lift(data, publisher)?.let(sink::onFrame)
             }
 
             override fun onStop(publisher: String?, data: SuperLyricData?) {
-                sink.onFrame(Frame.stop(Stop(data?.lyricId, StopReason.STOPPED)))
+                sink.onFrame(Frame.stop(Stop(data?.lyricId, StopReason.STOPPED), publisher))
             }
         }
         receiver = stub
         manager.registerReceiver(stub)
+        return Receiver.RegisterResult.OK.code
     }
 
     override fun unregister() {
@@ -68,7 +70,7 @@ internal class LegacyTransport(private val manager: ISuperLyricManager) : Transp
         receiver = null
     }
 
-    override fun latest(): Frame? = LegacyV37.lift(manager.latestLyric)
+    override fun latest(): Frame? = LegacyV37.lift(manager.latestLyric, null)
 
     override fun apiVersion(): Int = 0
 

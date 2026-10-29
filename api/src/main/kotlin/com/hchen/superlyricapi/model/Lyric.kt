@@ -84,7 +84,21 @@ class Lyric private constructor() {
      * @param positionMs 播放进度，毫秒
      * @return 行下标；早于首行起始时间时为 -1
      */
-    fun indexAt(positionMs: Long): Int = lines.indexOfLast { it.start <= positionMs }
+    fun indexAt(positionMs: Long): Int {
+        var low = 0
+        var high = lines.size - 1
+        var result = -1
+        while (low <= high) {
+            val mid = (low + high) ushr 1
+            if (lines[mid].start <= positionMs) {
+                result = mid
+                low = mid + 1
+            } else {
+                high = mid - 1
+            }
+        }
+        return result
+    }
 
     override fun toString(): String = "Lyric{$id / $title ($lineCount lines)}"
 }

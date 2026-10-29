@@ -21,6 +21,8 @@ interface Receiver {
     /**
      * 注册监听器。同一个监听器重复注册不会重复投递。
      *
+     * 服务端在注册成功后立即推送一次当前状态：有在播会话则推送 FULL，无在播但存在最近一次停止则推送 STOP。
+     *
      * @param listener 歌词回调
      * @return 注册结果
      */
@@ -30,13 +32,21 @@ interface Receiver {
      * 移除指定监听器。最后一个监听器移除后断开与服务端的连接。
      *
      * @param listener 要移除的监听器
+     * @return true 表示本地已断开连接
      */
-    fun unregister(listener: LyricListener)
+    fun unregister(listener: LyricListener): Boolean
 
     /**
      * 移除全部监听器并断开连接。
+     *
+     * @return true 表示本地已断开连接
      */
-    fun unregisterAll()
+    fun unregisterAll(): Boolean
+
+    /**
+     * 指定的监听器是否已注册。
+     */
+    fun isRegistered(listener: LyricListener): Boolean
 
     /**
      * 获取当前的歌词状态。
@@ -46,15 +56,32 @@ interface Receiver {
     fun latest(): LyricView?
 
     /**
-     * 获取最近一次停止事件。用于冷启动时区分"从未播放"与"已停止"。
+     * 获取最近一次停止事件。收到新的歌词后会被清空。
      *
      * @return 最近一次停止事件；尚未收到时为 null
      */
     fun lastStop(): Stop?
 
-    enum class RegisterResult {
-        OK,
-        SERVICE_UNAVAILABLE,
-        REJECTED,
+    /**
+     * 注册结果。服务端返回对应的整数值，未知值按 [REJECTED] 处理。
+     */
+    enum class RegisterResult(val code: Int) {
+        OK(0),
+
+        /** 服务端未安装或不可达 */
+        SERVICE_UNAVAILABLE(1),
+
+        /** 服务端拒绝，未细分原因 */
+        REJECTED(2),
+
+        /** 超出监听器配额 */
+        REJECTED_QUOTA(3),
+        ;
+
+        companion object {
+            @JvmStatic
+            fun fromCode(code: Int): RegisterResult =
+                entries.firstOrNull { it.code == code } ?: REJECTED
+        }
     }
 }

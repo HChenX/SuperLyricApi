@@ -48,15 +48,18 @@ internal object ReceiverImpl : Receiver {
         return bind(transport)
     }
 
-    override fun unregister(listener: LyricListener) {
+    override fun unregister(listener: LyricListener): Boolean {
         listeners.remove(listener)
-        if (listeners.isEmpty()) unbind()
+        if (!listeners.isEmpty()) return false
+        return unbind()
     }
 
-    override fun unregisterAll() {
+    override fun unregisterAll(): Boolean {
         listeners.clear()
-        unbind()
+        return unbind()
     }
+
+    override fun isRegistered(listener: LyricListener): Boolean = listeners.contains(listener)
 
     override fun latest(): LyricView? {
         val transport = synchronized(lock) { bound } ?: BinderHub.transport() ?: return null
@@ -72,7 +75,9 @@ internal object ReceiverImpl : Receiver {
         val active = synchronized(lock) { cache } ?: LyricCache(transport, ::deliverView).also {
             synchronized(lock) { cache = it }
         }
-        return active.resolve(frame)
+        val view = active.resolve(frame)
+        if (view != null) synchronized(lock) { lastStopValue = null }
+        return view
     }
 
     override fun lastStop(): Stop? = synchronized(lock) { lastStopValue }
@@ -86,9 +91,8 @@ internal object ReceiverImpl : Receiver {
             cache = nextCache
         }
 
-        return try {
+        val code = try {
             transport.register(::dispatch)
-            Receiver.RegisterResult.OK
         } catch (e: RemoteException) {
             Log.w(TAG, "register() failed: ${e.message}")
             synchronized(lock) {
@@ -96,11 +100,20 @@ internal object ReceiverImpl : Receiver {
                 cache = null
             }
             BinderHub.reset()
-            Receiver.RegisterResult.SERVICE_UNAVAILABLE
+            return Receiver.RegisterResult.SERVICE_UNAVAILABLE
         }
+
+        val result = Receiver.RegisterResult.fromCode(code)
+        if (result != Receiver.RegisterResult.OK) {
+            synchronized(lock) {
+                bound = null
+                cache = null
+            }
+        }
+        return result
     }
 
-    private fun unbind() {
+    private fun unbind(): Boolean {
         val transport = synchronized(lock) {
             val current = bound
             bound = null
@@ -108,15 +121,17 @@ internal object ReceiverImpl : Receiver {
             current
         }
 
-        if (transport == null) return
+        if (transport == null) return false
         try {
             transport.unregister()
         } catch (ignored: RemoteException) {
         }
+        return true
     }
 
     private fun dispatch(frame: Frame) {
         val current = synchronized(lock) { cache } ?: return
+        val publisher = frame.publisher
 
         if (frame.kind == Frame.Kind.STOP) {
             val stop = frame.stop ?: Stop(null, StopReason.STOPPED)
@@ -124,7 +139,7 @@ internal object ReceiverImpl : Receiver {
             current.clear()
             for (listener in listeners) {
                 try {
-                    listener.onStop(stop)
+                    listener.onStop(stop, publisher)
                 } catch (t: Throwable) {
                     Log.e(TAG, "LyricListener threw", t)
                 }
@@ -132,7 +147,11 @@ internal object ReceiverImpl : Receiver {
             return
         }
 
-        current.resolve(frame)?.let(::deliverView)
+        val view = current.resolve(frame)
+        if (view != null) {
+            synchronized(lock) { lastStopValue = null }
+            deliverView(view)
+        }
     }
 
     private fun deliverView(view: LyricView) {

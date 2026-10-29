@@ -13,7 +13,6 @@ package com.hchen.superlyricapi.wire
 import com.hchen.superlyricapi.model.Lyric
 import com.hchen.superlyricapi.model.State
 import com.hchen.superlyricapi.model.Stop
-import com.hchen.superlyricapi.model.StopReason
 
 /**
  * 线上单帧数据。
@@ -134,7 +133,15 @@ class Frame private constructor() {
                 throw WireFormatException("Unsupported format ${format}, expected $FORMAT")
             }
 
-            val frame = WireCodec.readStruct(reader, Frame::class.java)
+            val frame = try {
+                WireCodec.readStruct(reader, Frame::class.java)
+            } catch (e: WireFormatException) {
+                throw e
+            } catch (e: RuntimeException) {
+                throw WireFormatException("Malformed frame: ${e.message}", e)
+            }
+
+            // 已知类型缺 payload 是错误；kind 为 null 表示本端不认识的帧类型，交由调用方跳过
             when (frame.kind) {
                 Kind.FULL -> if (frame.doc == null) {
                     throw WireFormatException("FULL frame without doc")
@@ -143,7 +150,7 @@ class Frame private constructor() {
                     throw WireFormatException("STATE frame without state")
                 }
                 Kind.STOP -> if (frame.stop == null) {
-                    frame.stop = Stop(null, StopReason.STOPPED)
+                    throw WireFormatException("STOP frame without stop")
                 }
                 null -> Unit
             }

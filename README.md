@@ -86,7 +86,7 @@ Lyric doc = new Lyric("song_1001", 180_000L, lines, "歌曲标题", "艺术家�
 
 Publisher.PublishResult result = SuperLyric.publisher().publish(doc);
 if (result != Publisher.PublishResult.OK) {
-    // SERVICE_UNAVAILABLE / PAYLOAD_TOO_LARGE / REJECTED
+    // 0 OK / 1 SERVICE_UNAVAILABLE / 2 PAYLOAD_TOO_LARGE / 3..7 各类 REJECTED
 }
 ```
 
@@ -117,7 +117,7 @@ SuperLyric.receiver().register(object : LyricListener {
         val state = view.state
     }
 
-    override fun onStop(stop: Stop) {
+    override fun onStop(stop: Stop, publisher: String?) {
         val reason = stop.reason
     }
 })
@@ -143,8 +143,8 @@ SuperLyric.receiver().register(new LyricListener() {
     }
 
     @Override
-    public void onStop(Stop stop) {
-        // PAUSED / STOPPED / ERROR / PROCESS_DIED / CLEARED
+    public void onStop(Stop stop, String publisher) {
+        // STOPPED / ERROR / PROCESS_DIED / CLEARED；暂停不触发 onStop
     }
 });
 
@@ -178,11 +178,15 @@ SuperLyric.receiver().unregisterAll();
 | 客户端 | 服务端 | 结果 |
 |---|---|---|
 | 4.0 | 4.0 | 完整功能 |
-| 4.0 | 3.x | 发布时转换为 3.x 格式，接收时转换回 4.0 模型；无倍速与停止原因 |
+| 4.0 | 3.x | 发布时转换为 3.x 格式，接收时转换回 4.0 模型；state 为 null（未知），publisher 取 3.x 回调携带的包名 |
 | 3.x | 4.0 | 服务端按 3.x 格式下发 |
 | 3.x | 3.x | 不变 |
 
-客户端通过 `super_lyric.v4` 是否存在判断服务端能力，不使用版本号。
+客户端用服务名判断代际：存在 `super_lyric.v4` 即为 4.x。同一代内部的语义差异用 `SuperLyric.serverApiVersion()` 判断（3.x 或不可用时返回 0）。
+
+| 版本 | 语义基线 |
+|---|---|
+| 40 | 所有帧携带 publisher；暂停只通过 State 表达；`PublishResult` 含 4 到 7 的拒绝码；`duration` 为 0 表示未知；`registerListener` 返回注册结果码 |
 
 ## 扩展字段
 

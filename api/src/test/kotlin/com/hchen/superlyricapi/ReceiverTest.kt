@@ -23,6 +23,7 @@ import com.hchen.superlyricapi.model.StopReason
 import com.hchen.superlyricapi.wire.Frame
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -32,13 +33,17 @@ class ReceiverTest {
 
     private class Fake : Transport {
         var sink: FrameSink? = null
+        var registerCode: Int = 0
 
         override fun publish(lyric: Lyric): Int = 0
 
         override fun clear() = Unit
 
-        override fun register(sink: FrameSink) {
+        override fun register(sink: FrameSink): Int {
+            if (registerCode != 0) return registerCode
+
             this.sink = sink
+            return 0
         }
 
         override fun unregister() {
@@ -57,13 +62,15 @@ class ReceiverTest {
     private class Recording : LyricListener {
         val views = ArrayList<LyricView>()
         val stops = ArrayList<Stop>()
+        var lastPublisher: String? = null
 
         override fun onLyric(view: LyricView) {
             views += view
         }
 
-        override fun onStop(stop: Stop) {
+        override fun onStop(stop: Stop, publisher: String?) {
             stops += stop
+            lastPublisher = publisher
         }
     }
 
@@ -88,8 +95,8 @@ class ReceiverTest {
         listOf(Line("a", 0, 1000), Line("b", 1000, 2000)),
     )
 
-    private fun fullFrame(): Frame =
-        Frame.full(lyric(), State("t", 1, 1500L, 1f, PlaybackState.PLAYING))
+    private fun fullFrame(publisher: String? = "com.example.music"): Frame =
+        Frame.full(lyric(), State("t", 1, 1500L, 1f, PlaybackState.PLAYING), publisher)
 
     @Test
     fun multipleListenersReceiveTheSameView() {
@@ -104,7 +111,7 @@ class ReceiverTest {
         assertEquals(1, first.views.size)
         assertEquals(1, second.views.size)
         assertEquals("b", first.views[0].line?.text)
-        assertEquals("b", second.views[0].line?.text)
+        assertEquals("com.example.music", first.views[0].publisher)
     }
 
     @Test
@@ -114,7 +121,12 @@ class ReceiverTest {
         receiver.register(first)
         receiver.register(second)
 
+        assertTrue(receiver.isRegistered(first))
         receiver.unregister(first)
+
+        assertFalse(receiver.isRegistered(first))
+        assertTrue(receiver.isRegistered(second))
+
         fake.emit(fullFrame())
 
         assertTrue(first.views.isEmpty())
@@ -122,16 +134,25 @@ class ReceiverTest {
     }
 
     @Test
-    fun lastStopIsRemembered() {
+    fun lastStopIsRememberedAndClearedByNewLyric() {
         val listener = Recording()
         receiver.register(listener)
 
         assertNull(receiver.lastStop())
 
-        fake.emit(Frame.stop(Stop("t", StopReason.CLEARED)))
-
+        fake.emit(Frame.stop(Stop("t", StopReason.CLEARED), "com.example.music"))
         assertEquals(StopReason.CLEARED, receiver.lastStop()?.reason)
-        assertEquals(1, listener.stops.size)
+        assertEquals("com.example.music", listener.lastPublisher)
+
+        fake.emit(fullFrame())
+        assertNull(receiver.lastStop())
+    }
+
+    @Test
+    fun rejectedRegistrationIsReported() {
+        fake.registerCode = 3
+
+        assertEquals(Receiver.RegisterResult.REJECTED_QUOTA, receiver.register(Recording()))
     }
 
     @Test
