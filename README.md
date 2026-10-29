@@ -19,13 +19,13 @@
 
 SuperLyricApi 在音乐应用与系统服务之间传递歌词。
 
-音乐应用发布一次完整歌词，包含行文本、逐字时间、翻译与副歌词。系统服务负责对齐播放进度，并在歌词行或播放状态变化时向接收端推送。
+音乐应用发布一次完整歌词，包含行文本、逐字时间、翻译与注音。系统服务负责对齐播放进度，并在歌词行或播放状态变化时向接收端推送。
 
 播放进度、暂停状态与倍速由系统从 MediaSession 读取，发布方不参与。
 
 通信基于 Binder，数据结构为自描述的字节流，新增字段不影响已有的接收端。
 
-API 由 Kotlin 实现，Java 调用方式不变；内部实现使用 internal 可见性，不对外暴露。
+API 由 Kotlin 实现，可直接从 Java 调用；内部实现不对外暴露。
 
 ## 添加依赖
 
@@ -98,7 +98,7 @@ if (result != Publisher.PublishResult.OK) {
 | `title`、`artist`、`album` | 选填 | 用于显示与服务端曲目校验 |
 | `words`、`translation`、`phonetic` | 选填 | 缺省时按整行或无翻译处理 |
 
-`lyricId`、`duration`、`lines` 由 `Lyric` 构造器校验，取值非法时抛出 `IllegalArgumentException`（Java 传入 null 时由空值检查先行拦截）。`duration` 为 0 表示未知，服务端会尝试从 MediaMetadata 补齐。
+`lyricId`、`duration`、`lines` 由 `Lyric` 构造器校验，取值非法时抛出 `IllegalArgumentException`。`duration` 为 0 表示未知，服务端会尝试从 MediaMetadata 补齐。
 
 切歌时无需清理旧数据，系统检测到播放曲目变化后会自行处理。仅在需要立即清除时才调用 `SuperLyric.publisher().clear()`。
 
@@ -153,7 +153,7 @@ LyricView current = SuperLyric.receiver().latest();
 SuperLyric.receiver().unregisterAll();
 ```
 
-回调可能在 binder 线程或库内部工作线程执行（异步自愈补发的帧走后者）。回调中抛出的异常会被捕获并记录，不影响其他接收端。
+回调可能在 binder 线程或库内部工作线程执行。回调中抛出的异常会被捕获并记录，不影响其他接收端。
 
 注册时若服务端正在播放，会立即收到一帧完整状态；没有在播会话则不会主动推送。
 
@@ -176,7 +176,7 @@ SuperLyric.receiver().unregisterAll();
 
 ## 兼容性
 
-4.0 重写了源码 API，线上协议保持兼容。
+4.0 与 3.x 的线上协议互通，源码 API 不兼容。
 
 新旧接口各使用独立的服务名（`super_lyric.v4` 与 `super_lyric`），可以任意组合：
 

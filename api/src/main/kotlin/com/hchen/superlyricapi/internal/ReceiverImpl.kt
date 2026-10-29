@@ -21,11 +21,7 @@ import com.hchen.superlyricapi.wire.Frame
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
- * [Receiver] 的实现。
- *
- * 锁只用于交换字段，任何 binder 调用都在锁外进行，避免与服务端广播互锁。
- * 服务寄生于系统进程，掉线不做后台重试：下一次 register 会重新探测并重绑，
- * latest 只重新探测，不影响已有绑定。
+ * [Receiver] 的实现。锁只用于交换字段，binder 调用都在锁外。
  */
 internal object ReceiverImpl : Receiver {
     private const val TAG = "SuperLyric"
@@ -43,11 +39,11 @@ internal object ReceiverImpl : Receiver {
         listeners.addIfAbsent(listener)
         if (synchronized(lock) { bound } === transport) return Receiver.RegisterResult.OK
 
-        // 绑定为空，或服务重启后换成了新的实例：先清理旧连接再重绑
+        // 绑定为空或已失效：先断开再重绑
         unbind()
         val result = bind(transport)
         if (result != Receiver.RegisterResult.OK) {
-            // 注册失败时不保留登记，避免 isRegistered 与实际投递状态不一致
+            // 注册失败时不保留登记
             listeners.remove(listener)
         }
         return result

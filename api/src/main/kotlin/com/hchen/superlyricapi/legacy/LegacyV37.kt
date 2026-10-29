@@ -24,16 +24,12 @@ import com.hchen.superlyricapi.model.Word
 import com.hchen.superlyricapi.wire.Frame
 
 /**
- * v4 模型与 3.x 数据模型之间的转换。
- *
- * 3.x 的 Parcel 布局为位置式，无法识别新增字段，因此只按旧格式写出固定字段。
+ * v4 模型与 3.x 数据模型互转。
  */
 object LegacyV37 {
 
     /**
-     * 将 v4 文档转换为 3.x 数据。
-     *
-     * 当前行与行下标取首行，进度取 0；行翻译与注音由行对象携带。
+     * 转为 3.x 数据。当前行取首行，进度为 0。
      *
      * @param lyric v4 歌词文档
      * @return 3.x 数据
@@ -65,12 +61,10 @@ object LegacyV37 {
     }
 
     /**
-     * 将 3.x 数据转换为 v4 帧。全量数据生成 FULL，仅含状态的数据生成 STATE。
-     *
-     * 3.x 不携带播放状态与倍速：state 置 null 表示未知，speed 按 1.0 处理。
+     * 转为 v4 帧。全量生成 FULL，点位生成 STATE；state 为 null，speed 为 1.0。
      *
      * @param data 3.x 数据，可为 null
-     * @param publisher 3.x 回调携带的发布方包名，可为 null
+     * @param publisher 发布方包名，可为 null
      * @return 帧；无法转换时为 null
      */
     @JvmStatic

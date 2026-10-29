@@ -15,11 +15,10 @@ import com.hchen.superlyricapi.model.Lyric
 import com.hchen.superlyricapi.model.PlaybackState
 
 /**
- * 某一时刻的歌词状态，包含歌词文档、当前行下标、播放进度与倍速。
+ * 某一时刻的歌词状态。
  *
- * [position] 为推送时刻的快照，连续推进时可结合 SystemClock.elapsedRealtime() 与 [speed] 推算。
- * [publisher] 为发布方包名；3.x 服务端或未填写时为 null。
- * [state] 为 null 表示播放状态未知，不等同于暂停或停止。
+ * [position] 是推送时刻的快照，连续推进可用 SystemClock.elapsedRealtime() 与 [speed] 推算。
+ * [publisher] 与 [state] 为 null 时表示未知。
  */
 class LyricView(
     val lyric: Lyric,

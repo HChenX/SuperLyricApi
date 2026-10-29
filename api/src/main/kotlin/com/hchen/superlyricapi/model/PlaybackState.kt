@@ -11,10 +11,7 @@
 package com.hchen.superlyricapi.model
 
 /**
- * 播放状态。
- *
- * 由系统从 MediaSession 采集后下发。没有 UNKNOWN 常量：状态为 null 即表示未知，
- * 这同时覆盖"3.x 服务端不提供状态"与"尚未收到状态"两种情况。
+ * 播放状态。由系统从 MediaSession 采集，状态为 null 时表示未知。
  */
 enum class PlaybackState {
     PLAYING,

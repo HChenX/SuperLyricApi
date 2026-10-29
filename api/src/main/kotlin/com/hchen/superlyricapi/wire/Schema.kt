@@ -13,9 +13,7 @@ package com.hchen.superlyricapi.wire
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * 一个类的字段号表，按字段号排序。
- *
- * 字段由 [Wire] 注解在运行期扫描得到，每个类只缓存一次。
+ * 一个类的字段号表，按字段号排序。每个类只扫描一次。
  */
 internal class Schema private constructor(private val type: Class<*>) {
     val fields: List<WireField>

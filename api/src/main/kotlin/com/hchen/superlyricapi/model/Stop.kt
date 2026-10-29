@@ -14,9 +14,7 @@ import com.hchen.superlyricapi.wire.Wire
 import java.util.Objects
 
 /**
- * 停止事件。
- *
- * 自带发布方：停止事件会被接收端缓存并在冷启动时重放，不能只依赖帧级字段。
+ * 停止事件。发布方随事件携带。
  */
 class Stop private constructor() {
     @field:Wire(1)

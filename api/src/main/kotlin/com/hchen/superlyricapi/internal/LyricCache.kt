@@ -18,9 +18,7 @@ import com.hchen.superlyricapi.model.State
 import com.hchen.superlyricapi.wire.Frame
 
 /**
- * 将 FULL 与 STATE 帧合并为完整视图。
- *
- * [resolve] 不会发起 binder 调用：缓存未命中时把补拉任务交给 [Background]，成功后通过 [deliver] 投递。
+ * 合并 FULL 与 STATE 帧。缓存未命中时交给 [Background] 补拉，不发起 binder 调用。
  */
 internal class LyricCache(
     private val transport: Transport,

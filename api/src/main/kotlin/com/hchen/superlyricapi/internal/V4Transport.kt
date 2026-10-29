@@ -70,7 +70,7 @@ internal class V4Transport(private val service: ISuperLyricService) : Transport 
     override fun latest(): Frame? = service.latest()?.let(Frame::decode)
 
     /**
-     * 帧类型是本端不认识的枚举值，通常意味着服务端比库新。只记一次，避免每帧刷屏。
+     * 记录未知帧类型，只记录一次。
      */
     private fun warnUnknownKind(frame: ByteArray) {
         if (warnedUnknownKind) return

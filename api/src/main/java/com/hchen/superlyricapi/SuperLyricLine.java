@@ -58,7 +58,7 @@ public class SuperLyricLine implements Parcelable {
     @Nullable
     private String translation = null;
     /**
-     * 当前行次要/副歌词/罗马音文本
+     * 次要歌词文本，注音或罗马音
      */
     @Nullable
     private String secondary = null;
@@ -161,7 +161,7 @@ public class SuperLyricLine implements Parcelable {
     }
 
     /**
-     * 是否存在次要/副歌词/罗马音文本
+     * 是否存在次要歌词文本
      */
     public boolean hasSecondary() {
         return Objects.nonNull(secondary) && !secondary.isEmpty();
@@ -196,7 +196,7 @@ public class SuperLyricLine implements Parcelable {
     }
 
     /**
-     * 将当前行的副歌词文本包装为独立的 {@link SuperLyricLine}
+     * 把当前行的次要歌词包装为独立的 {@link SuperLyricLine}
      */
     @Nullable
     public SuperLyricLine getSecondaryLine() {

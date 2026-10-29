@@ -17,10 +17,7 @@ import android.os.ServiceManager
 import android.util.Log
 
 /**
- * 服务定位。
- *
- * 服务寄生于系统进程，正常情况下不会掉线，因此这里不做后台重试：
- * binder 死亡后仅清空缓存，下一次调用重新探测。
+ * 服务定位。binder 死亡后清空缓存，下一次调用重新探测。
  */
 @SuppressLint("SoonBlockedPrivateApi", "DiscouragedPrivateApi", "PrivateApi")
 internal object BinderHub {
@@ -35,7 +32,7 @@ internal object BinderHub {
     private var injected: Transport? = null
 
     /**
-     * 获取可用的传输实现。结果会被缓存，服务断开后自动失效。
+     * 获取传输实现，结果会缓存。
      *
      * @return 传输实现；服务不存在时为 null
      */

@@ -15,10 +15,7 @@ import com.hchen.superlyricapi.model.State
 import com.hchen.superlyricapi.model.Stop
 
 /**
- * 线上单帧数据。
- *
- * 帧头为 [u32 MAGIC][u32 FORMAT]，其后是一个 TLV Struct。单帧上限为 [MAX_SIZE] 字节，
- * 编码与解码都会检查。
+ * 线上单帧数据。帧头为 MAGIC 与 FORMAT，其后是 TLV Struct；单帧上限 [MAX_SIZE]。
  */
 class Frame private constructor() {
     enum class Kind {
@@ -49,9 +46,7 @@ class Frame private constructor() {
         private set
 
     /**
-     * 发布方包名，由服务端填写。客户端发出的帧为 null。
-     *
-     * STOP 帧由 [Stop.publisher] 派生，两者始终一致。
+     * 发布方包名，由服务端填写；STOP 帧取自 [Stop.publisher]。
      */
     @field:Wire(5)
     var publisher: String? = null
@@ -104,7 +99,7 @@ class Frame private constructor() {
         fun stop(stop: Stop): Frame = Frame().apply {
             this.kind = Kind.STOP
             this.stop = stop
-            // 停止事件的来源由 Stop 自己携带，帧级字段与之保持一致
+            // 与 Stop.publisher 保持一致
             this.publisher = stop.publisher
         }
 

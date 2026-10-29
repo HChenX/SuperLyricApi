@@ -39,7 +39,7 @@ internal interface Transport {
     fun latest(): Frame?
 
     /**
-     * 服务端实现的 API 版本。3.x 服务端没有这个概念，返回 0。
+     * 服务端 API 版本；3.x 返回 0。
      */
     fun apiVersion(): Int
 }

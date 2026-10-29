@@ -19,7 +19,7 @@ import com.hchen.superlyricapi.internal.ReceiverImpl
  */
 object SuperLyric {
     /**
-     * 服务是否可用。任一版本的服务均可视为可用，调用不会抛出异常。
+     * 服务是否可用。
      *
      * @return 服务存在时为 true
      */

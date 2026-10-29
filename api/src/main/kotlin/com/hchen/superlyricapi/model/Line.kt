@@ -14,10 +14,7 @@ import com.hchen.superlyricapi.wire.Wire
 import java.util.Objects
 
 /**
- * 一行歌词。
- *
- * 时序合法性由发布端保证：start 不大于 end，words 按 start 升序且落在行区间内。
- * 模型层不做校验，避免拒绝真实歌词数据中的常见瑕疵。
+ * 一行歌词。时序由发布端保证：start 不大于 end，words 按 start 升序。
  */
 class Line private constructor() {
     /**

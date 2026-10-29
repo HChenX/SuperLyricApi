@@ -15,9 +15,7 @@ import com.hchen.superlyricapi.wire.Wire
 /**
  * 一首歌的歌词文档。
  *
- * id 与 lines 为必填项；duration 为 0 表示未知，服务端可从 MediaMetadata 补齐。
- *
- * 两条契约：lines 必须按 start 升序；indexAt 在首行开始之前返回 -1，需要显示首行时由调用方自行收敛。
+ * lines 必须按 start 升序；duration 为 0 表示未知，由服务端补齐。
  */
 class Lyric private constructor() {
     @field:Wire(1)

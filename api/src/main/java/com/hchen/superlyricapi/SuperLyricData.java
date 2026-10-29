@@ -57,11 +57,11 @@ public class SuperLyricData implements Parcelable {
      */
     private SuperLyricLine lyric = null;
     /**
-     * 次要歌词数据，仅用于兼容旧版 API 或仅传递单行歌词的情况
+     * 次要歌词数据，仅用于兼容旧版 API
      */
     private SuperLyricLine secondary = null;
     /**
-     * 歌词翻译数据，仅用于兼容旧版 API 或仅传递单行歌词的情况
+     * 歌词翻译数据，仅用于兼容旧版 API
      */
     private SuperLyricLine translation = null;
 
@@ -106,7 +106,7 @@ public class SuperLyricData implements Parcelable {
      */
     private long position = -1L;
     /**
-     * 歌词全局唯一标识/版本指纹（用于客户端缓存匹配）
+     * 歌词唯一标识与版本指纹
      */
     @Nullable
     private String lyricId = null;
@@ -405,9 +405,9 @@ public class SuperLyricData implements Parcelable {
     }
 
     /**
-     * 安全获取指定索引位置的歌词行
+     * 获取指定下标的歌词行
      *
-     * @param index 索引下标（从 0 开始）
+     * @param index 下标，从 0 开始
      * @return 对应歌词行，若越界或无全量歌词则返回 null
      */
     @Nullable
@@ -419,7 +419,7 @@ public class SuperLyricData implements Parcelable {
     }
 
     /**
-     * 获取已播放完毕的历史歌词行列表（从第 0 行到当前行前一行）
+     * 当前行之前的歌词行
      */
     @NonNull
     public List<SuperLyricLine> getPlayedLyrics() {
@@ -435,7 +435,7 @@ public class SuperLyricData implements Parcelable {
     }
 
     /**
-     * 获取尚未播放的未来歌词行列表（从当前行后一行到末尾）
+     * 当前行之后的歌词行
      */
     @NonNull
     public List<SuperLyricLine> getUpcomingLyrics() {
@@ -451,21 +451,21 @@ public class SuperLyricData implements Parcelable {
     }
 
     /**
-     * 是否为全量歌词数据包（包含整首歌曲的所有行）
+     * 是否为全量数据包
      */
     public boolean isFullPayload() {
         return hasAllLyrics();
     }
 
     /**
-     * 是否为增量/点位数据包：不含整首歌词，但携带了当前行、行下标或播放点位
+     * 是否为点位数据包，不含全量歌词
      */
     public boolean isDeltaPayload() {
         return !hasAllLyrics() && (hasCurrentLyricIndex() || hasLyric() || hasPosition());
     }
 
     /**
-     * 是否为停止 / 空包：既不含整首歌词，也没有任何当前行信息
+     * 是否为停止或空包
      */
     public boolean isStopPayload() {
         return !hasAllLyrics() && !isDeltaPayload();

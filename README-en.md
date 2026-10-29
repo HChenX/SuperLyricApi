@@ -20,7 +20,7 @@
 SuperLyricApi carries lyrics between a music app and a system service.
 
 The music app publishes one complete lyric document, including line text, per-word timing,
-translation and secondary text. The system service aligns the document with playback progress and
+translation and phonetic text. The system service aligns the document with playback progress and
 pushes updates to receivers whenever the current line or the playback state changes.
 
 Progress, pause state and playback speed are read from MediaSession by the system. Publishers do not
@@ -29,8 +29,8 @@ send them.
 Communication uses Binder. The payload is a self-describing byte stream, so new fields do not break
 existing receivers.
 
-The API is written in Kotlin and remains fully callable from Java. Implementation types are internal
-and not part of the public surface.
+The API is written in Kotlin and callable from Java. Implementation types are internal and not part
+of the public surface.
 
 ## Dependency
 
@@ -91,7 +91,7 @@ Lyric doc = new Lyric("song_1001", 180_000L, lines, "Title", "Artist", "Album");
 
 Publisher.PublishResult result = SuperLyric.publisher().publish(doc);
 if (result != Publisher.PublishResult.OK) {
-    // SERVICE_UNAVAILABLE / PAYLOAD_TOO_LARGE / REJECTED
+    // 0 OK / 1 SERVICE_UNAVAILABLE / 2 PAYLOAD_TOO_LARGE / 3..7 rejections
 }
 ```
 
@@ -104,7 +104,7 @@ if (result != Publisher.PublishResult.OK) {
 | `words`, `translation`, `phonetic` | optional | omitted values degrade to plain line text |
 
 `lyricId`, `duration` and `lines` are validated by the `Lyric` constructor; invalid values raise
-`IllegalArgumentException`, while a null passed from Java is rejected by the null check first.
+`IllegalArgumentException`.
 
 Clearing is handled by the system when the playing track changes. Call
 `SuperLyric.publisher().clear()` only when the lyrics must be removed immediately.
@@ -151,9 +151,8 @@ SuperLyric.receiver().register(new LyricListener() {
 });
 ```
 
-Callbacks run either on a binder thread or on the library worker thread (the latter for frames
-delivered by an asynchronous self-heal). Exceptions thrown from a callback are caught and logged,
-and do not affect other receivers.
+Callbacks run either on a binder thread or on the library worker thread. Exceptions thrown from a
+callback are caught and logged, and do not affect other receivers.
 
 If a session is playing at registration time, one full state frame arrives immediately; otherwise
 nothing is pushed.
@@ -179,7 +178,7 @@ locally with `SystemClock.elapsedRealtime()` and `speed`.
 
 ## Compatibility
 
-Version 4.0 rewrites the source API and keeps the wire protocol compatible.
+4.0 and 3.x interoperate on the wire; the source API is not compatible.
 
 Each generation has its own service name (`super_lyric.v4` and `super_lyric`), and either side can
 be mixed:

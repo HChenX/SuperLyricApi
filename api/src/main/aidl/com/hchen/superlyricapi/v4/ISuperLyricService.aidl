@@ -16,18 +16,17 @@ import com.hchen.superlyricapi.v4.ILyricFrameListener;
 /**
  * v4 服务接口，注册于 super_lyric.v4 服务名下。
  *
- * <p>与 3.x 的 ISuperLyricManager（注册于 super_lyric）相互独立。一个 IBinder 只能实现一套
- * stub 与事务号，因此两代接口使用不同的服务名。接口发布后只允许在末尾追加方法。
+ * <p>已发布的接口只允许在末尾追加方法。
  *
- * <p>线程与锁契约：
+ * <p>线程：
  * <ul>
  *   <li>回调可能发生在任意线程，包括 registerListener 返回之前；</li>
- *   <li>客户端在持有自身锁时不会发起 binder 调用，服务端可以同步回调，不会因此死锁；</li>
- *   <li>latest 必须可从任意线程调用，且不得阻塞在广播锁上。</li>
+ *   <li>客户端不会在持锁时发起 binder 调用，服务端可以同步回调；</li>
+ *   <li>latest 可从任意线程调用，不得阻塞在广播锁上。</li>
  * </ul>
  *
- * <p>帧上限：单帧不超过 Frame.MAX_SIZE 字节，入站与出站一致。超限的载荷应返回
- * PublishResult.PAYLOAD_TOO_LARGE，而不是抛出异常。
+ * <p>帧上限：单帧不超过 Frame.MAX_SIZE 字节；超限返回 PublishResult.PAYLOAD_TOO_LARGE，
+ * 不抛异常。
  */
 interface ISuperLyricService {
     /**
@@ -69,7 +68,7 @@ interface ISuperLyricService {
     byte[] latest();
 
     /**
-     * 查询服务端实现的 API 版本。客户端用它判断服务端是否支持某条新语义。
+     * 服务端 API 版本。
      *
      * @return 版本号，与 BuildConfig.API_VERSION 一致
      */
