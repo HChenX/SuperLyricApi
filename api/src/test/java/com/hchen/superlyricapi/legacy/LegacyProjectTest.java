@@ -30,12 +30,11 @@ import java.util.Collections;
 public class LegacyProjectTest {
 
     private static Lyric sample() {
-        return new Lyric("song-1", 2000L, Arrays.asList(
+        return new Lyric("song-1", "Title", "Artist", "Album", 2000L, Arrays.asList(
             new Line("first", 0, 900),
             new Line("second", 900, 2000,
                 Collections.singletonList(new Word("sec", 900, 1000)),
-                "翻译", "romaji")),
-            "Title", "Artist", "Album");
+                "翻译", "romaji")));
     }
 
     @Test
@@ -87,6 +86,16 @@ public class LegacyProjectTest {
 
         assertEquals(Frame.Kind.STOP, frame.getKind());
         assertEquals(StopReason.STOPPED, frame.getStop().getReason());
+    }
+
+    @Test
+    public void liftWithoutTitleYieldsEmptyString() {
+        SuperLyricData data = LegacyV37.project(sample()).setTitle(null);
+
+        Frame frame = LegacyV37.lift(data);
+
+        assertNotNull(frame);
+        assertEquals("", frame.getDoc().getTitle());
     }
 
     @Test

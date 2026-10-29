@@ -98,8 +98,8 @@ public class SuperLyricDemo {
             "Ni Hao Shi Jie"));
         lines.add(new Line("下一句歌词", 900, 2000, null, "Next Line", null));
 
-        // id、duration、lines 为必填项，其余为选填项
-        Lyric doc = new Lyric("song_1001", 180_000L, lines, "歌曲标题", "艺术家名称", "专辑名称");
+        // id、title、duration、lines 为必填项，artist 与 album 用空串表示未知
+        Lyric doc = new Lyric("song_1001", "歌曲标题", "艺术家名称", "专辑名称", 180_000L, lines);
 
         Publisher.PublishResult result = SuperLyric.publisher().publish(doc);
         if (result != Publisher.PublishResult.OK) {

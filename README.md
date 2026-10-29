@@ -62,7 +62,7 @@ val lines = listOf(
     Line("下一句歌词", 900, 2000),
 )
 
-val doc = Lyric("song_1001", 180_000L, lines, "歌曲标题", "艺术家名称", "专辑名称")
+val doc = Lyric("song_1001", "歌曲标题", "艺术家名称", "专辑名称", 180_000L, lines)
 
 when (SuperLyric.publisher().publish(doc)) {
     Publisher.PublishResult.OK -> Unit
@@ -82,7 +82,7 @@ lines.add(new Line("你好世界", 0, 900,
         "Hello World", "Ni Hao Shi Jie"));
 lines.add(new Line("下一句歌词", 900, 2000, null, "Next Line", null));
 
-Lyric doc = new Lyric("song_1001", 180_000L, lines, "歌曲标题", "艺术家名称", "专辑名称");
+Lyric doc = new Lyric("song_1001", "歌曲标题", "艺术家名称", "专辑名称", 180_000L, lines);
 
 Publisher.PublishResult result = SuperLyric.publisher().publish(doc);
 if (result != Publisher.PublishResult.OK) {
@@ -93,12 +93,13 @@ if (result != Publisher.PublishResult.OK) {
 | 字段 | 要求 | 说明 |
 |---|---|---|
 | `lyricId` | 必填 | 曲目标识，接收端按此区分缓存 |
-| `duration` | 必填，0 表示未知 | 服务端可用 MediaMetadata 补齐 |
+| `title` | 必填，不能为空白 | 用于显示与服务端曲目校验 |
+| `artist`、`album` | 必填参数，可传空串 | 空串表示未知 |
+| `duration` | 必填，0 表示未知 | 服务端可补齐 |
 | `lines`，每行 `start` 与 `end` | 必填 | 行时间决定当前行的计算 |
-| `title`、`artist`、`album` | 选填 | 用于显示与服务端曲目校验 |
 | `words`、`translation`、`phonetic` | 选填 | 缺省时按整行或无翻译处理 |
 
-`lyricId`、`duration`、`lines` 由 `Lyric` 构造器校验，取值非法时抛出 `IllegalArgumentException`。`duration` 为 0 表示未知，服务端会尝试从 MediaMetadata 补齐。
+`lyricId`、`duration`、`lines` 由 `Lyric` 构造器校验，`title` 由 `publish()` 校验，取值非法时抛出 `IllegalArgumentException`。`duration` 为 0 表示未知，服务端会尝试补齐。
 
 切歌时无需清理旧数据，系统检测到播放曲目变化后会自行处理。仅在需要立即清除时才调用 `SuperLyric.publisher().clear()`。
 

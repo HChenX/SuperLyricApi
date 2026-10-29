@@ -69,7 +69,7 @@ object SuperLyricKotlinDemo {
             ),
             Line("下一句歌词", 900, 2000),
         )
-        val doc = Lyric("song_1001", 180_000L, lines, "歌曲标题", "艺术家名称", "专辑名称")
+        val doc = Lyric("song_1001", "歌曲标题", "艺术家名称", "专辑名称", 180_000L, lines)
 
         when (SuperLyric.publisher().publish(doc)) {
             Publisher.PublishResult.OK -> Unit

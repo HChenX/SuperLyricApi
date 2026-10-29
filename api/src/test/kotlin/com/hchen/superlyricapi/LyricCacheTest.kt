@@ -61,6 +61,9 @@ class LyricCacheTest {
 
     private fun doc(id: String): Lyric = Lyric(
         id,
+        "标题",
+        "artist",
+        "",
         3000L,
         listOf(
             Line("a", 0, 1000),

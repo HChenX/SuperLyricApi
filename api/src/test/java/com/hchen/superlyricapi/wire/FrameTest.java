@@ -29,10 +29,9 @@ import java.util.Arrays;
 public class FrameTest {
 
     private static Lyric sampleLyric() {
-        return new Lyric("song-1", 180_000L, Arrays.asList(
+        return new Lyric("song-1", "Title", "Artist", "Album", 180_000L, Arrays.asList(
             new Line("first", 0, 1000),
-            new Line("second", 1000, 2000)),
-            "Title", "Artist", "Album");
+            new Line("second", 1000, 2000)));
     }
 
     @Test

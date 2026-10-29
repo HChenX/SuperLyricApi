@@ -16,22 +16,32 @@ import com.hchen.superlyricapi.wire.Wire
  * 一首歌的歌词文档。
  *
  * lines 必须按 start 升序；duration 为 0 表示未知，由服务端补齐。
+ * artist 与 album 为空串时表示未知；title 不能为空白，由发布接口校验。
  */
 class Lyric private constructor() {
     @field:Wire(1)
     var id: String = ""
         private set
 
+    /**
+     * 歌曲标题；空串表示未知。
+     */
     @field:Wire(2)
-    var title: String? = null
+    var title: String = ""
         private set
 
+    /**
+     * 艺术家；空串表示未知。
+     */
     @field:Wire(3)
-    var artist: String? = null
+    var artist: String = ""
         private set
 
+    /**
+     * 专辑；空串表示未知。
+     */
     @field:Wire(4)
-    var album: String? = null
+    var album: String = ""
         private set
 
     /**
@@ -47,30 +57,30 @@ class Lyric private constructor() {
 
     /**
      * @param id 曲目标识，不能为空白
+     * @param title 歌曲标题；允许空串，由发布接口校验非空白
+     * @param artist 艺术家；空串表示未知
+     * @param album 专辑；空串表示未知
      * @param duration 总时长，毫秒，不能为负数；0 表示未知
      * @param lines 歌词行，不能为空，必须按 start 升序
      * @throws IllegalArgumentException 必填项缺失或取值非法
      */
-    constructor(id: String, duration: Long, lines: List<Line>) : this() {
+    constructor(
+        id: String,
+        title: String,
+        artist: String,
+        album: String,
+        duration: Long,
+        lines: List<Line>,
+    ) : this() {
         require(id.isNotBlank()) { "lyricId is required and must not be blank" }
         require(duration >= 0L) { "duration must not be negative, was $duration" }
         require(lines.isNotEmpty()) { "lines must not be empty" }
         this.id = id
-        this.duration = duration
-        this.lines = lines.toList()
-    }
-
-    constructor(
-        id: String,
-        duration: Long,
-        lines: List<Line>,
-        title: String?,
-        artist: String?,
-        album: String?,
-    ) : this(id, duration, lines) {
         this.title = title
         this.artist = artist
         this.album = album
+        this.duration = duration
+        this.lines = lines.toList()
     }
 
     val lineCount: Int

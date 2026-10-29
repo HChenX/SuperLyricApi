@@ -89,6 +89,9 @@ class ReceiverTest {
 
     private fun lyric(): Lyric = Lyric(
         "t",
+        "标题",
+        "artist",
+        "",
         3000L,
         listOf(Line("a", 0, 1000), Line("b", 1000, 2000)),
     )

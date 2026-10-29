@@ -11,7 +11,6 @@
 package com.hchen.superlyricapi;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 import com.hchen.superlyricapi.model.Line;
@@ -22,26 +21,29 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 public class LyricBuilderTest {
+
+    private static final List<Line> LINES = Collections.singletonList(new Line("a", 0, 1000));
 
     @Test
     public void blankIdIsRejected() {
         assertThrows(IllegalArgumentException.class,
-            () -> new Lyric("", 1000, Collections.singletonList(new Line("a", 0, 1000))));
+            () -> new Lyric("", "标题", "", "", 1000, LINES));
         assertThrows(NullPointerException.class,
-            () -> new Lyric(null, 1000, Collections.singletonList(new Line("a", 0, 1000))));
+            () -> new Lyric(null, "标题", "", "", 1000, LINES));
     }
 
     @Test
     public void negativeDurationIsRejected() {
         assertThrows(IllegalArgumentException.class,
-            () -> new Lyric("id", -1, Collections.singletonList(new Line("a", 0, 1000))));
+            () -> new Lyric("id", "标题", "", "", -1, LINES));
     }
 
     @Test
     public void unknownDurationIsAllowed() {
-        Lyric lyric = new Lyric("id", 0, Collections.singletonList(new Line("a", 0, 1000)));
+        Lyric lyric = new Lyric("id", "标题", "", "", 0, LINES);
 
         assertEquals(0L, lyric.getDuration());
     }
@@ -49,21 +51,28 @@ public class LyricBuilderTest {
     @Test
     public void emptyLinesAreRejected() {
         assertThrows(IllegalArgumentException.class,
-            () -> new Lyric("id", 1000, Collections.emptyList()));
+            () -> new Lyric("id", "标题", "", "", 1000, Collections.emptyList()));
     }
 
     @Test
-    public void optionalMetadataIsOptional() {
-        Lyric lyric = new Lyric("id", 1000, Collections.singletonList(new Line("a", 0, 1000)));
+    public void blankTitleIsAllowedByModel() {
+        Lyric lyric = new Lyric("id", "", "", "", 1000, LINES);
 
-        assertNull(lyric.getTitle());
-        assertNull(lyric.getArtist());
+        assertEquals("", lyric.getTitle());
+    }
+
+    @Test
+    public void emptyArtistAndAlbumAreAllowed() {
+        Lyric lyric = new Lyric("id", "标题", "", "", 1000, LINES);
+
+        assertEquals("", lyric.getArtist());
+        assertEquals("", lyric.getAlbum());
         assertEquals(1, lyric.getLineCount());
     }
 
     @Test
     public void indexAtPicksTheLastLineThatStarted() {
-        Lyric lyric = new Lyric("id", 5000, Arrays.asList(
+        Lyric lyric = new Lyric("id", "标题", "", "", 5000, Arrays.asList(
             new Line("a", 0, 1000),
             new Line("b", 1000, 2500),
             new Line("c", 2500, 5000)));
@@ -77,7 +86,7 @@ public class LyricBuilderTest {
 
     @Test
     public void viewSlicesAroundTheCurrentLine() {
-        Lyric lyric = new Lyric("id", 3000, Arrays.asList(
+        Lyric lyric = new Lyric("id", "标题", "", "", 3000, Arrays.asList(
             new Line("a", 0, 1000),
             new Line("b", 1000, 2000),
             new Line("c", 2000, 3000)));

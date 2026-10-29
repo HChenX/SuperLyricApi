@@ -20,6 +20,8 @@ import com.hchen.superlyricapi.model.Lyric
 internal object PublisherImpl : Publisher {
 
     override fun publish(lyric: Lyric): Publisher.PublishResult {
+        require(lyric.title.isNotBlank()) { "title is required and must not be blank" }
+
         val transport = BinderHub.transport() ?: return Publisher.PublishResult.SERVICE_UNAVAILABLE
         return try {
             Publisher.PublishResult.fromCode(transport.publish(lyric))

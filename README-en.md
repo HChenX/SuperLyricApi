@@ -67,7 +67,7 @@ val lines = listOf(
     Line("Next line", 900, 2000),
 )
 
-val doc = Lyric("song_1001", 180_000L, lines, "Title", "Artist", "Album")
+val doc = Lyric("song_1001", "Title", "Artist", "Album", 180_000L, lines)
 
 when (SuperLyric.publisher().publish(doc)) {
     Publisher.PublishResult.OK -> Unit
@@ -87,7 +87,7 @@ lines.add(new Line("Hello world", 0, 900,
         "你好世界", "Ni Hao Shi Jie"));
 lines.add(new Line("Next line", 900, 2000, null, null, null));
 
-Lyric doc = new Lyric("song_1001", 180_000L, lines, "Title", "Artist", "Album");
+Lyric doc = new Lyric("song_1001", "Title", "Artist", "Album", 180_000L, lines);
 
 Publisher.PublishResult result = SuperLyric.publisher().publish(doc);
 if (result != Publisher.PublishResult.OK) {
@@ -98,13 +98,14 @@ if (result != Publisher.PublishResult.OK) {
 | Field | Requirement | Notes |
 |---|---|---|
 | `lyricId` | required | track identity used by receiver caches |
-| `duration` | required, 0 means unknown | the server may fill it from MediaMetadata |
+| `title` | required, must not be blank | display and server-side track matching |
+| `artist`, `album` | required arguments, may be empty | an empty string means unknown |
+| `duration` | required, 0 means unknown | the server may fill it in |
 | `lines` with `start` and `end` | required | line timing determines the current line |
-| `title`, `artist`, `album` | optional | display and server-side track matching |
 | `words`, `translation`, `phonetic` | optional | omitted values degrade to plain line text |
 
-`lyricId`, `duration` and `lines` are validated by the `Lyric` constructor; invalid values raise
-`IllegalArgumentException`.
+`lyricId`, `duration` and `lines` are validated by the `Lyric` constructor, `title` by `publish()`;
+invalid values raise `IllegalArgumentException`.
 
 Clearing is handled by the system when the playing track changes. Call
 `SuperLyric.publisher().clear()` only when the lyrics must be removed immediately.

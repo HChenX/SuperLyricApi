@@ -113,7 +113,7 @@ class FrameInvariantTest {
     @Test
     fun oversizedFrameIsRejectedOnEncode() {
         val lines = (0 until 8_000).map { Line("x".repeat(80), it.toLong(), it.toLong() + 1) }
-        val lyric = Lyric("big", 0L, lines)
+        val lyric = Lyric("big", "标题", "", "", 0L, lines)
 
         assertThrows(IllegalStateException::class.java) { Frame.full(lyric, null).encode() }
     }

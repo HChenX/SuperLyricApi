@@ -118,7 +118,14 @@ object LegacyV37 {
         if (lines.isEmpty()) return null
 
         return try {
-            Lyric(idOf(data), data.duration, lines, data.title, data.artist, data.album)
+            Lyric(
+                idOf(data),
+                data.title ?: "",
+                data.artist ?: "",
+                data.album ?: "",
+                data.duration,
+                lines,
+            )
         } catch (invalid: IllegalArgumentException) {
             null
         }
