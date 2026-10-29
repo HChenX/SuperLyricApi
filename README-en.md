@@ -171,7 +171,7 @@ locally with `SystemClock.elapsedRealtime()` and `speed`.
 | `Publisher` | `publish(Lyric)`, `clear()` |
 | `Receiver` | `register(LyricListener)`, `unregister(listener)`, `unregisterAll()`, `latest()`, `lastStop()` |
 | `LyricListener` | `onLyric(LyricView)`, `onStop(Stop)` |
-| `LyricView` | Merged view: document, current line, position, speed, playback state |
+| `LyricView` | Merged view: document, current line, position, speed, playback state, publisher |
 | `Lyric`, `Line`, `Word` | Read-only lyric models |
 | `State`, `Stop` | State and stop events produced by the system |
 | `PublishResult`, `RegisterResult` | Call results |

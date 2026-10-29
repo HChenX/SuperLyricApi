@@ -24,7 +24,8 @@ import java.util.concurrent.CopyOnWriteArrayList
  * [Receiver] 的实现。
  *
  * 锁只用于交换字段，任何 binder 调用都在锁外进行，避免与服务端广播互锁。
- * 服务寄生于系统进程，掉线不做后台重试：下一次 register 或 latest 会重新探测并重绑。
+ * 服务寄生于系统进程，掉线不做后台重试：下一次 register 会重新探测并重绑，
+ * latest 只重新探测，不影响已有绑定。
  */
 internal object ReceiverImpl : Receiver {
     private const val TAG = "SuperLyric"
@@ -37,14 +38,19 @@ internal object ReceiverImpl : Receiver {
     private var lastStopValue: Stop? = null
 
     override fun register(listener: LyricListener): Receiver.RegisterResult {
-        listeners.addIfAbsent(listener)
-
         val transport = BinderHub.transport() ?: return Receiver.RegisterResult.SERVICE_UNAVAILABLE
+
+        listeners.addIfAbsent(listener)
         if (synchronized(lock) { bound } === transport) return Receiver.RegisterResult.OK
 
         // 绑定为空，或服务重启后换成了新的实例：先清理旧连接再重绑
         unbind()
-        return bind(transport)
+        val result = bind(transport)
+        if (result != Receiver.RegisterResult.OK) {
+            // 注册失败时不保留登记，避免 isRegistered 与实际投递状态不一致
+            listeners.remove(listener)
+        }
+        return result
     }
 
     override fun unregister(listener: LyricListener): Boolean {

@@ -149,10 +149,13 @@ class ReceiverTest {
     }
 
     @Test
-    fun rejectedRegistrationIsReported() {
+    fun rejectedRegistrationIsReportedAndNotKept() {
         fake.registerCode = 3
+        val listener = Recording()
 
-        assertEquals(Receiver.RegisterResult.REJECTED_QUOTA, receiver.register(Recording()))
+        assertEquals(Receiver.RegisterResult.REJECTED_QUOTA, receiver.register(listener))
+
+        assertFalse("a rejected listener must not stay registered", receiver.isRegistered(listener))
     }
 
     @Test
