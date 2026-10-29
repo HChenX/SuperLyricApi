@@ -152,7 +152,11 @@ LyricView current = SuperLyric.receiver().latest();
 SuperLyric.receiver().unregisterAll();
 ```
 
-回调在 binder 线程执行。回调中抛出的异常会被捕获并记录，不影响其他接收端。
+回调可能在 binder 线程或库内部工作线程执行（异步自愈补发的帧走后者）。回调中抛出的异常会被捕获并记录，不影响其他接收端。
+
+注册时若服务端正在播放，会立即收到一帧完整状态；没有在播会话则不会主动推送。
+
+`latest()` 主动拉取最近一次会话的终态：在播时返回视图；会话已结束时把原因记入 `lastStop()` 并返回 null；从未有会话时同样返回 null。收到新的歌词后 `lastStop()` 自动清空。
 
 `position` 是推送时刻的快照。需要连续更新时，可结合 `SystemClock.elapsedRealtime()` 与 `speed` 在本地推算。
 

@@ -150,8 +150,15 @@ SuperLyric.receiver().register(new LyricListener() {
 });
 ```
 
-Callbacks run on a binder thread. Exceptions thrown from a callback are caught and logged, and do
-not affect other receivers.
+Callbacks run either on a binder thread or on the library worker thread (the latter for frames
+delivered by an asynchronous self-heal). Exceptions thrown from a callback are caught and logged,
+and do not affect other receivers.
+
+If a session is playing at registration time, one full state frame arrives immediately; otherwise
+nothing is pushed.
+
+`latest()` pulls the terminal state of the most recent session: a view while playing, otherwise the
+reason goes into `lastStop()` and the call returns null. A new lyric clears `lastStop()`.
 
 `position` is a snapshot taken when the update was pushed. For continuous updates, extrapolate
 locally with `SystemClock.elapsedRealtime()` and `speed`.

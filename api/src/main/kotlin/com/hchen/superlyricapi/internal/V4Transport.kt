@@ -51,10 +51,7 @@ internal class V4Transport(private val service: ISuperLyricService) : Transport 
                 }
 
                 if (decoded.kind == null) {
-                    if (!warnedUnknownKind) {
-                        warnedUnknownKind = true
-                        Log.w(TAG, "Dropping a frame with an unknown kind")
-                    }
+                    warnUnknownKind(frame)
                     return
                 }
                 sink.onFrame(decoded)
@@ -71,6 +68,26 @@ internal class V4Transport(private val service: ISuperLyricService) : Transport 
     }
 
     override fun latest(): Frame? = service.latest()?.let(Frame::decode)
+
+    /**
+     * 帧类型是本端不认识的枚举值，通常意味着服务端比库新。只记一次，避免每帧刷屏。
+     */
+    private fun warnUnknownKind(frame: ByteArray) {
+        if (warnedUnknownKind) return
+
+        warnedUnknownKind = true
+        val head = hexHead(frame)
+        Log.w(TAG, "Unknown frame kind, size=${frame.size}, head=$head, serverApiVersion=${apiVersion()}")
+    }
+
+    private fun hexHead(frame: ByteArray, limit: Int = 48): String {
+        val builder = StringBuilder(limit * 2)
+        for (i in 0 until minOf(limit, frame.size)) {
+            val value = frame[i].toInt() and 0xFF
+            builder.append(value.toString(16).padStart(2, '0'))
+        }
+        return builder.toString()
+    }
 
     override fun apiVersion(): Int = try {
         service.apiVersion
