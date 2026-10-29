@@ -16,6 +16,7 @@ import com.hchen.superlyricapi.model.Lyric
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -46,6 +47,15 @@ class PublisherTest {
     fun blankTitleIsRejected() {
         assertThrows(IllegalArgumentException::class.java) { publisher.publish(lyric("")) }
         assertThrows(IllegalArgumentException::class.java) { publisher.publish(lyric("   ")) }
+    }
+
+    @Test
+    fun blankTitleMessageNamesTheTrack() {
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            publisher.publish(lyric(""))
+        }
+
+        assertTrue("message must carry the track id", error.message?.contains("id=t") == true)
     }
 
     @Test

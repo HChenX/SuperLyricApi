@@ -16,7 +16,7 @@ import com.hchen.superlyricapi.wire.Wire
  * 一首歌的歌词文档。
  *
  * lines 必须按 start 升序；duration 为 0 表示未知，由服务端补齐。
- * artist 与 album 为空串时表示未知；title 不能为空白，由发布接口校验。
+ * title、artist、album 为空串时表示未知。构造器不校验 title，发布时要求非空白。
  */
 class Lyric private constructor() {
     @field:Wire(1)
@@ -57,7 +57,7 @@ class Lyric private constructor() {
 
     /**
      * @param id 曲目标识，不能为空白
-     * @param title 歌曲标题；允许空串，由发布接口校验非空白
+     * @param title 歌曲标题；空串表示未知，发布时不可为空白
      * @param artist 艺术家；空串表示未知
      * @param album 专辑；空串表示未知
      * @param duration 总时长，毫秒，不能为负数；0 表示未知

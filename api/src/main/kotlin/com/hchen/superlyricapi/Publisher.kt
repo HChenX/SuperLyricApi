@@ -23,7 +23,7 @@ interface Publisher {
      *
      * @param lyric 歌词文档
      * @return 发布结果
-     * @throws IllegalArgumentException title 为空白
+     * @throws IllegalArgumentException title 为空白；消息中带有曲目标识
      */
     fun publish(lyric: Lyric): PublishResult
 
