@@ -66,12 +66,17 @@ android {
         aidl true
     }
 
+    // AIDL 会为 parcelable 声明生成一个同名的空文件，与手写类一起进入源码包时冲突。
+    // 在编译全部完成之后、打包源码之前删除它。
     tasks.register("RemoveSuperLyricData") {
+        mustRunAfter tasks.matching {
+            it.name.contains("compileReleaseAidl") ||
+                it.name.contains("compileReleaseKotlin") ||
+                it.name.contains("compileReleaseJavaWithJavac")
+        }
         doLast {
             def buildDir = "${project.buildDir}/generated/aidl_source_output_dir"
-            def classFiles = fileTree(dir: buildDir, includes: ['**/SuperLyricData.java'])
-
-            classFiles.each { file ->
+            fileTree(dir: buildDir, includes: ['**/SuperLyricData.java']).each { file ->
                 if (file.exists()) {
                     file.delete()
                     println("Remove File: ${file}")
@@ -80,11 +85,8 @@ android {
         }
     }
 
-    tasks.configureEach { task ->
-        def name = task.name
-        if ((name.contains("JavaWithJavac") || name.contains("Aidl")) && !name.contains("Test")) {
-            task.finalizedBy(RemoveSuperLyricData)
-        }
+    tasks.matching { it.name == 'sourceReleaseJar' }.configureEach {
+        dependsOn 'RemoveSuperLyricData'
     }
 }
 
