@@ -10,27 +10,14 @@
 ![language](https://img.shields.io/badge/language-java-purple)
 
 <p><b><a href="README-en.md">English</a> | <a href="README.md">简体中文</a></b></p>
-<p>A Binder-based lyric transport API for Android.</p>
+<p>A Binder-based lyric transport API</p>
 </div>
 
 ---
 
 ## Overview
 
-SuperLyricApi carries lyrics between a music app and a system service.
-
-The music app publishes one complete lyric document, including line text, per-word timing,
-translation and phonetic text. The system service aligns the document with playback progress and
-pushes updates to receivers whenever the current line or the playback state changes.
-
-Progress, pause state and playback speed are read from MediaSession by the system. Publishers do not
-send them.
-
-Communication uses Binder. The payload is a self-describing byte stream, so new fields do not break
-existing receivers.
-
-The API is written in Kotlin and callable from Java. Implementation types are internal and not part
-of the public surface.
+SuperLyricApi passes lyric data from a music app to clients over Binder.
 
 ## Dependency
 
@@ -52,7 +39,7 @@ dependencies {
 
 ## Publishing
 
-Call `publish()` once per track, and again when the track changes.
+Lightweight: publishing a lyric takes a single `publish()` call, repeated when the track changes.
 
 Kotlin:
 
@@ -112,6 +99,8 @@ Clearing is handled by the system when the playing track changes. Call
 
 ## Receiving
 
+Simple: registering takes a single line of code.
+
 Kotlin:
 
 ```kotlin
@@ -152,14 +141,16 @@ SuperLyric.receiver().register(new LyricListener() {
 });
 ```
 
-Callbacks run either on a binder thread or on the library worker thread. Exceptions thrown from a
-callback are caught and logged, and do not affect other receivers.
+Note:
+
+Multiple receivers can be registered.
+
+Callbacks may run on a binder thread or the library worker thread, so do not touch UI directly.
 
 If a session is playing at registration time, one full state frame arrives immediately; otherwise
 nothing is pushed.
 
-`latest()` pulls the terminal state of the most recent session: a view while playing, otherwise the
-reason and its publisher go into `lastStop()` and the call returns null. A new lyric clears `lastStop()`.
+`latest()` pulls the terminal state of the most recent session. `lastStop()` pulls the last stop event; a new lyric clears it.
 
 `position` is a snapshot taken when the update was pushed. For continuous updates, extrapolate
 locally with `SystemClock.elapsedRealtime()` and `speed`.
@@ -194,11 +185,7 @@ be mixed:
 The client tells generations apart by service name: `super_lyric.v4` means 4.x. Within a
 generation, use `SuperLyric.serverApiVersion()`; it returns 0 for 3.x or an unavailable service.
 
-| Version | Semantics |
-|---|---|
-| 40 | every frame carries publisher, and a stop event carries its own copy in Stop; pause is expressed by State only; `PublishResult` includes codes 4 to 7; `duration` 0 means unknown; `registerListener` returns a result code |
-
-## Adding a Field (maintainers)
+## Adding a Field
 
 The steps below are for maintaining the library. The `Wire` annotation is internal; consumers
 cannot and should not add fields to the models.

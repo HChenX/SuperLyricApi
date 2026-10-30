@@ -10,22 +10,14 @@
 ![language](https://img.shields.io/badge/language-java-purple)
 
 <p><b><a href="README-en.md">English</a> | <a href="README.md">简体中文</a></b></p>
-<p>基于 Binder 的 Android 歌词传输接口。</p>
+<p>基于 Binder 的歌词传输 Api</p>
 </div>
 
 ---
 
 ## 概述
 
-SuperLyricApi 在音乐应用与系统服务之间传递歌词。
-
-音乐应用发布一次完整歌词，包含行文本、逐字时间、翻译与注音。系统服务负责对齐播放进度，并在歌词行或播放状态变化时向接收端推送。
-
-播放进度、暂停状态与倍速由系统从 MediaSession 读取，发布方不参与。
-
-通信基于 Binder，数据结构为自描述的字节流，新增字段不影响已有的接收端。
-
-API 由 Kotlin 实现，可直接从 Java 调用；内部实现不对外暴露。
+SuperLyricApi 使用 Binder 通信将音乐软件歌词数据传递至客户端。
 
 ## 添加依赖
 
@@ -47,7 +39,7 @@ dependencies {
 
 ## 发布端
 
-一首歌调用一次 `publish()`，切歌时再次调用。
+极致的轻便：发布歌词数据仅需调用一次 `publish()`，直至下次切歌时再次调用。
 
 Kotlin：
 
@@ -105,6 +97,8 @@ if (result != Publisher.PublishResult.OK) {
 
 ## 接收端
 
+简洁优雅：只需一行代码即可注册使用。
+
 Kotlin：
 
 ```kotlin
@@ -153,12 +147,15 @@ SuperLyric.receiver().register(new LyricListener() {
 LyricView current = SuperLyric.receiver().latest();
 SuperLyric.receiver().unregisterAll();
 ```
+注：
 
-回调可能在 binder 线程或库内部工作线程执行。回调中抛出的异常会被捕获并记录，不影响其他接收端。
+支持注册多个不同的接收器。
+
+回调可能在 binder 线程或库内部工作线程执行，请注意不要直接进行 UI 操作。
 
 注册时若服务端正在播放，会立即收到一帧完整状态；没有在播会话则不会主动推送。
 
-`latest()` 主动拉取最近一次会话的终态：在播时返回视图；会话已结束时把原因与发布方记入 `lastStop()` 并返回 null；从未有会话时同样返回 null。收到新的歌词后 `lastStop()` 自动清空。
+`latest()` 主动拉取最近一次会话的终态。`lastStop()` 主动拉取最近一次的会话结束终态，收到新的歌词后会自动清空。
 
 `position` 是推送时刻的快照。需要连续更新时，可结合 `SystemClock.elapsedRealtime()` 与 `speed` 在本地推算。
 
@@ -190,11 +187,7 @@ SuperLyric.receiver().unregisterAll();
 
 客户端用服务名判断代际：存在 `super_lyric.v4` 即为 4.x。同一代内部的语义差异用 `SuperLyric.serverApiVersion()` 判断（3.x 或不可用时返回 0）。
 
-| 版本 | 语义基线 |
-|---|---|
-| 40 | 所有帧携带 publisher，停止事件另在自己的 Stop 中携带一份；暂停只通过 State 表达；`PublishResult` 含 4 到 7 的拒绝码；`duration` 为 0 表示未知；`registerListener` 返回注册结果码 |
-
-## 扩展字段（库维护）
+## 扩展字段
 
 以下步骤面向库维护者。`Wire` 注解是 internal 的，使用方无法也不应给模型加字段。
 
